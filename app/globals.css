@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply min-h-screen bg-slate-50 text-slate-950 antialiased;
+}
+
+a {
+  @apply text-inherit no-underline;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  @apply bg-sky-100 text-sky-950;
+}

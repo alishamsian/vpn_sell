@@ -1,0 +1,23 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        surface: "#0f172a",
+        border: "#1e293b",
+      },
+      boxShadow: {
+        soft: "0 12px 32px rgba(15, 23, 42, 0.08)",
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;
