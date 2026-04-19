@@ -1,41 +1,31 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { CopyButton } from "@/components/copy-button";
 import { useToast } from "@/components/toast-provider";
 import { formatPrice } from "@/lib/format";
 import type { PlanInventory } from "@/lib/queries";
 
-type PurchaseState = {
+type OrderState = {
   orderId: string;
-  config: string;
-  createdAt: string;
   planName: string;
 };
 
 type PlanListProps = {
   plans: PlanInventory[];
+  currentUser: {
+    name: string;
+  } | null;
 };
 
-function getOrCreateDummyUserId() {
-  const storageKey = "vpn-sell-user-id";
-  const existing = window.localStorage.getItem(storageKey);
-
-  if (existing) {
-    return existing;
-  }
-
-  const created = crypto.randomUUID();
-  window.localStorage.setItem(storageKey, created);
-  return created;
-}
-
-export function PlanList({ plans }: PlanListProps) {
-  const [items, setItems] = useState(plans);
+export function PlanList({ plans, currentUser }: PlanListProps) {
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
-  const [purchase, setPurchase] = useState<PurchaseState | null>(null);
+  const [createdOrder, setCreatedOrder] = useState<OrderState | null>(null);
   const { showToast } = useToast();
+  const router = useRouter();
+  const items = plans;
 
   const hasStock = useMemo(
     () => items.some((plan) => plan.remainingCount > 0),
@@ -43,55 +33,44 @@ export function PlanList({ plans }: PlanListProps) {
   );
 
   async function handleBuy(planId: string) {
+    if (!currentUser) {
+      router.push("/login");
+      return;
+    }
+
     setLoadingPlanId(planId);
 
     const selectedPlan = items.find((item) => item.id === planId);
 
     try {
-      const response = await fetch("/api/buy", {
+      const response = await fetch("/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           planId,
-          userId: getOrCreateDummyUserId(),
         }),
       });
 
       const payload = (await response.json()) as {
         success: boolean;
         orderId?: string;
-        config?: string;
-        createdAt?: string;
         error?: string;
       };
 
-      if (!response.ok || !payload.success || !payload.config || !payload.orderId || !payload.createdAt) {
-        throw new Error(payload.error ?? "خرید انجام نشد.");
+      if (!response.ok || !payload.success || !payload.orderId) {
+        throw new Error(payload.error ?? "ثبت سفارش انجام نشد.");
       }
 
-      setItems((current) =>
-        current.map((item) =>
-          item.id === planId
-            ? {
-                ...item,
-                remainingCount: Math.max(item.remainingCount - 1, 0),
-                soldCount: item.soldCount + 1,
-              }
-            : item,
-        ),
-      );
-
-      setPurchase({
+      setCreatedOrder({
         orderId: payload.orderId,
-        config: payload.config,
-        createdAt: payload.createdAt,
         planName: selectedPlan?.name ?? "پلن انتخاب‌شده",
       });
-      showToast("خرید با موفقیت انجام شد.", "success");
+      showToast("سفارش ساخته شد. حالا اطلاعات پرداخت را ثبت کنید.", "success");
+      router.push(`/dashboard/orders/${payload.orderId}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "خرید انجام نشد.";
+      const message = error instanceof Error ? error.message : "ثبت سفارش انجام نشد.";
       showToast(message, "error");
     } finally {
       setLoadingPlanId(null);
@@ -105,7 +84,7 @@ export function PlanList({ plans }: PlanListProps) {
           <div>
             <h2 className="text-2xl font-semibold tracking-tight text-slate-950">پلن‌های موجود</h2>
             <p className="mt-1 text-sm text-slate-600">
-              موجودی از دیتابیس خوانده می‌شود و هر خرید دقیقا یک کانفیگ را رزرو می‌کند.
+              بعد از ثبت سفارش و تایید پرداخت، کانفیگ همان پلن برای کاربر تخصیص داده می‌شود.
             </p>
           </div>
           <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
@@ -155,11 +134,13 @@ export function PlanList({ plans }: PlanListProps) {
                   onClick={() => handleBuy(plan.id)}
                   className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
-                  {isLoading
-                    ? "در حال پردازش..."
-                    : plan.remainingCount === 0
-                      ? "ناموجود"
-                      : "خرید"}
+                  {!currentUser
+                    ? "ورود و ثبت سفارش"
+                    : isLoading
+                      ? "در حال پردازش..."
+                      : plan.remainingCount === 0
+                        ? "ناموجود"
+                        : "ثبت سفارش"}
                 </button>
               </article>
             );
@@ -169,33 +150,32 @@ export function PlanList({ plans }: PlanListProps) {
 
       <aside className="h-fit rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold text-slate-950">بعد از خرید</h2>
+          <h2 className="text-xl font-semibold text-slate-950">روند سفارش</h2>
           <p className="text-sm leading-6 text-slate-600">
-            بعد از موفقیت تراکنش، کانفیگ خریداری‌شده همین‌جا نمایش داده می‌شود.
+            ابتدا سفارش می‌سازید، سپس رسید کارت‌به‌کارت را ثبت می‌کنید و بعد از تایید ادمین
+            کانفیگ را تحویل می‌گیرید.
           </p>
         </div>
 
-        {purchase ? (
+        {createdOrder ? (
           <div className="mt-6 space-y-4">
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-              <div className="font-semibold">خرید کامل شد</div>
-              <div className="mt-1">{purchase.planName}</div>
-              <div className="mt-1 text-xs text-emerald-700">
-                سفارش #{purchase.orderId} • {new Date(purchase.createdAt).toLocaleString("fa-IR")}
-              </div>
+              <div className="font-semibold">سفارش با موفقیت ساخته شد</div>
+              <div className="mt-1">{createdOrder.planName}</div>
+              <div className="mt-1 text-xs text-emerald-700">کد سفارش: {createdOrder.orderId}</div>
             </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-950 p-4">
-              <pre className="overflow-x-auto whitespace-pre-wrap break-all text-sm leading-6 text-slate-100">
-                {purchase.config}
-              </pre>
-            </div>
-
-            <CopyButton value={purchase.config} />
+            <Link
+              href={`/dashboard/orders/${createdOrder.orderId}`}
+              className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              ادامه پرداخت و ثبت رسید
+            </Link>
           </div>
         ) : (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-            با خرید هر پلن موجود، کانفیگ اینجا نمایش داده می‌شود.
+            {currentUser
+              ? "برای شروع، یکی از پلن‌ها را انتخاب و سفارش خود را ثبت کنید."
+              : "برای ثبت سفارش و ثبت رسید، ابتدا وارد حساب خود شوید یا ثبت‌نام کنید."}
           </div>
         )}
       </aside>

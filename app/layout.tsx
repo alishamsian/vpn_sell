@@ -3,18 +3,22 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import "@/app/globals.css";
+import { logoutAction } from "@/app/(auth)/actions";
 import { ToastProvider } from "@/components/toast-provider";
+import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "فروش VPN",
   description: "فروش امن اکانت‌های آماده VPN با داشبورد ساده و فارسی.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
+  const session = await getSession();
+
   return (
     <html lang="fa" dir="rtl">
       <body>
@@ -26,19 +30,55 @@ export default function RootLayout({
                   فروش VPN
                 </Link>
 
-                <nav className="flex items-center gap-3 text-sm font-medium text-slate-600">
+                <nav className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-600">
                   <Link
                     href="/"
                     className="rounded-full border border-slate-200 px-4 py-2 transition hover:border-slate-300 hover:text-slate-950"
                   >
                     خانه
                   </Link>
-                  <Link
-                    href="/admin"
-                    className="rounded-full border border-slate-200 px-4 py-2 transition hover:border-slate-300 hover:text-slate-950"
-                  >
-                    ادمین
-                  </Link>
+
+                  {session ? (
+                    <>
+                      <Link
+                        href="/dashboard"
+                        className="rounded-full border border-slate-200 px-4 py-2 transition hover:border-slate-300 hover:text-slate-950"
+                      >
+                        داشبورد
+                      </Link>
+                      {session.role === "ADMIN" ? (
+                        <Link
+                          href="/admin"
+                          className="rounded-full border border-slate-200 px-4 py-2 transition hover:border-slate-300 hover:text-slate-950"
+                        >
+                          ادمین
+                        </Link>
+                      ) : null}
+                      <form action={logoutAction}>
+                        <button
+                          type="submit"
+                          className="rounded-full border border-slate-200 px-4 py-2 transition hover:border-slate-300 hover:text-slate-950"
+                        >
+                          خروج
+                        </button>
+                      </form>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/login"
+                        className="rounded-full border border-slate-200 px-4 py-2 transition hover:border-slate-300 hover:text-slate-950"
+                      >
+                        ورود
+                      </Link>
+                      <Link
+                        href="/register"
+                        className="rounded-full bg-slate-950 px-4 py-2 text-white transition hover:bg-slate-800"
+                      >
+                        ثبت‌نام
+                      </Link>
+                    </>
+                  )}
                 </nav>
               </div>
             </header>

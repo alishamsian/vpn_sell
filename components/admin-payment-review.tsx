@@ -1,0 +1,66 @@
+"use client";
+
+import { useActionState, useEffect } from "react";
+
+import { reviewPaymentAction } from "@/app/admin/actions";
+import { useToast } from "@/components/toast-provider";
+
+type AdminPaymentReviewProps = {
+  paymentId: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+};
+
+type AdminActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
+const initialState: AdminActionState = {
+  status: "idle",
+  message: "",
+};
+
+export function AdminPaymentReview({ paymentId, status }: AdminPaymentReviewProps) {
+  const [state, formAction] = useActionState(reviewPaymentAction, initialState);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    if (state.message && state.status !== "idle") {
+      showToast(state.message, state.status === "success" ? "success" : "error");
+    }
+  }, [showToast, state.message, state.status]);
+
+  if (status !== "PENDING") {
+    return null;
+  }
+
+  return (
+    <form action={formAction} className="space-y-3">
+      <input type="hidden" name="paymentId" value={paymentId} />
+      <textarea
+        name="reviewNote"
+        rows={3}
+        placeholder="یادداشت برای کاربر یا توضیح ادمین"
+        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+      />
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="submit"
+          name="decision"
+          value="approve"
+          className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+        >
+          تایید پرداخت
+        </button>
+        <button
+          type="submit"
+          name="decision"
+          value="reject"
+          className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-700"
+        >
+          رد پرداخت
+        </button>
+      </div>
+    </form>
+  );
+}

@@ -1,10 +1,11 @@
 import { PlanList } from "@/components/plan-list";
+import { getSession } from "@/lib/auth";
 import { getPlansWithInventory } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const plans = await getPlansWithInventory();
+  const [plans, session] = await Promise.all([getPlansWithInventory(), getSession()]);
 
   return (
     <div className="space-y-10">
@@ -23,7 +24,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <PlanList plans={plans} />
+      <PlanList
+        plans={plans}
+        currentUser={session ? { name: session.name } : null}
+      />
     </div>
   );
 }

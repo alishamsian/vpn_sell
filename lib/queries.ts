@@ -1,4 +1,4 @@
-import { AccountStatus } from "@prisma/client";
+import { AccountStatus, PaymentStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
@@ -90,4 +90,80 @@ export async function getAdminAccounts() {
       createdAt: "desc",
     },
   });
+}
+
+export async function getDashboardOrders(userId: string) {
+  return prisma.order.findMany({
+    where: {
+      userId,
+    },
+    include: {
+      plan: true,
+      payment: true,
+      account: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+export async function getOrderDetails(orderId: string, userId: string) {
+  return prisma.order.findFirst({
+    where: {
+      id: orderId,
+      userId,
+    },
+    include: {
+      user: true,
+      plan: true,
+      account: true,
+      payment: true,
+    },
+  });
+}
+
+export async function getAdminPayments() {
+  return prisma.payment.findMany({
+    include: {
+      order: {
+        include: {
+          plan: true,
+          user: true,
+          account: true,
+        },
+      },
+    },
+    orderBy: {
+      submittedAt: "desc",
+    },
+  });
+}
+
+export async function getAdminOverview() {
+  const [pendingPayments, approvedPayments, rejectedPayments, usersCount] = await Promise.all([
+    prisma.payment.count({
+      where: {
+        status: PaymentStatus.PENDING,
+      },
+    }),
+    prisma.payment.count({
+      where: {
+        status: PaymentStatus.APPROVED,
+      },
+    }),
+    prisma.payment.count({
+      where: {
+        status: PaymentStatus.REJECTED,
+      },
+    }),
+    prisma.user.count(),
+  ]);
+
+  return {
+    pendingPayments,
+    approvedPayments,
+    rejectedPayments,
+    usersCount,
+  };
 }

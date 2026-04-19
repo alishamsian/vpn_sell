@@ -1,11 +1,30 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserRole } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  const adminName = process.env.ADMIN_NAME ?? "مدیر سایت";
+  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@example.com";
+  const adminPhone = process.env.ADMIN_PHONE ?? "09120000000";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "Admin123456";
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+
+  await prisma.payment.deleteMany();
   await prisma.order.deleteMany();
   await prisma.account.deleteMany();
   await prisma.plan.deleteMany();
+  await prisma.user.deleteMany();
+
+  await prisma.user.create({
+    data: {
+      name: adminName,
+      email: adminEmail,
+      phone: adminPhone,
+      passwordHash,
+      role: UserRole.ADMIN,
+    },
+  });
 
   const plans = await prisma.$transaction([
     prisma.plan.create({

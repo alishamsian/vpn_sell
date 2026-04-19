@@ -3,6 +3,8 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
+import { requireAdmin } from "@/lib/auth";
+import { reviewPayment } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 
 type AdminActionState = {
@@ -14,6 +16,8 @@ export async function createPlanAction(
   _previousState: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
+  await requireAdmin();
+
   const name = String(formData.get("name") ?? "").trim();
   const priceValue = String(formData.get("price") ?? "").trim();
   const price = Number(priceValue);
@@ -52,6 +56,8 @@ export async function addAccountsAction(
   _previousState: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
+  await requireAdmin();
+
   const planId = String(formData.get("planId") ?? "").trim();
   const rawConfigs = String(formData.get("configs") ?? "");
   const configs = rawConfigs
@@ -104,4 +110,51 @@ export async function addAccountsAction(
     status: "success",
     message: `${configs.length} اکانت با موفقیت اضافه شد.`,
   };
+}
+
+export async function reviewPaymentAction(
+  _previousState: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdmin();
+
+  const paymentId = String(formData.get("paymentId") ?? "").trim();
+  const decision = String(formData.get("decision") ?? "").trim();
+  const reviewNote = String(formData.get("reviewNote") ?? "").trim();
+
+  if (!paymentId || !decision) {
+    return {
+      status: "error",
+      message: "شناسه پرداخت و تصمیم ادمین الزامی است.",
+    };
+  }
+
+  if (decision !== "approve" && decision !== "reject") {
+    return {
+      status: "error",
+      message: "تصمیم انتخاب‌شده معتبر نیست.",
+    };
+  }
+
+  try {
+    await reviewPayment({
+      paymentId,
+      decision,
+      source: "ADMIN_PANEL",
+      reviewNote: reviewNote || undefined,
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+
+    return {
+      status: "success",
+      message: decision === "approve" ? "پرداخت تایید شد." : "پرداخت رد شد.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "بررسی پرداخت با خطا مواجه شد.",
+    };
+  }
 }
