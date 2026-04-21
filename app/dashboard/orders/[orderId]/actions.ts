@@ -1,13 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
 
 import { requireUser } from "@/lib/auth";
-import { submitPaymentReceipt } from "@/lib/orders";
+import { createOrderForUser, submitPaymentReceipt } from "@/lib/orders";
 
 export type PaymentActionState = {
   status: "idle" | "success" | "error";
   message: string;
+};
+
+export type RenewActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  redirectTo?: string;
 };
 
 export async function submitPaymentAction(
@@ -50,6 +57,50 @@ export async function submitPaymentAction(
     return {
       status: "error",
       message: error instanceof Error ? error.message : "ثبت رسید با خطا مواجه شد.",
+    };
+  }
+}
+
+export async function renewPlanAction(
+  orderId: string,
+  previousState: RenewActionState,
+): Promise<RenewActionState> {
+  try {
+    void previousState;
+    const user = await requireUser();
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        userId: user.id,
+      },
+      select: {
+        planId: true,
+      },
+    });
+
+    if (!order) {
+      return {
+        status: "error",
+        message: "سفارش موردنظر پیدا نشد.",
+      };
+    }
+
+    const newOrder = await createOrderForUser({
+      userId: user.id,
+      planId: order.planId,
+    });
+
+    revalidatePath("/dashboard");
+
+    return {
+      status: "success",
+      message: "سفارش تمدید ساخته شد.",
+      redirectTo: `/dashboard/orders/${newOrder.id}`,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "ایجاد سفارش تمدید با خطا مواجه شد.",
     };
   }
 }

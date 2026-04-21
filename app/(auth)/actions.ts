@@ -4,10 +4,22 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { clearSessionCookie, hashPassword, setSessionCookie, verifyPassword } from "@/lib/auth";
+import { consumePasswordResetToken, createPasswordResetRequest } from "@/lib/password-reset";
 import { prisma } from "@/lib/prisma";
 
 export type AuthActionState = {
   status: "idle" | "success" | "error";
+  message: string;
+};
+
+export type PasswordResetRequestState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  debugUrl?: string;
+};
+
+export type PasswordResetConfirmState = {
+  status: "idle" | "error";
   message: string;
 };
 
@@ -106,4 +118,89 @@ export async function logoutAction() {
   await clearSessionCookie();
   revalidatePath("/");
   redirect("/");
+}
+
+export async function requestPasswordResetAction(
+  _previousState: PasswordResetRequestState,
+  formData: FormData,
+): Promise<PasswordResetRequestState> {
+  const identifier = String(formData.get("identifier") ?? "").trim().toLowerCase();
+
+  if (!identifier) {
+    return {
+      status: "error",
+      message: "ایمیل یا شماره موبایل را وارد کنید.",
+    };
+  }
+
+  try {
+    const result = await createPasswordResetRequest(identifier);
+
+    if (result.status === "missing_email") {
+      return {
+        status: "error",
+        message:
+          "برای این حساب ایمیلی ثبت نشده است. فعلا برای بازیابی رمز با پشتیبانی در ارتباط باشید.",
+      };
+    }
+
+    return {
+      status: "success",
+      message:
+        result.status === "dev_link"
+          ? "ایمیل بازیابی تنظیم نشده است. در محیط توسعه لینک مستقیم زیر ساخته شد."
+          : "اگر حسابی با این اطلاعات وجود داشته باشد، لینک بازنشانی برای شما ارسال می‌شود.",
+      debugUrl: result.debugUrl ?? undefined,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "ارسال درخواست بازیابی با خطا مواجه شد.",
+    };
+  }
+}
+
+export async function resetPasswordAction(
+  _previousState: PasswordResetConfirmState,
+  formData: FormData,
+): Promise<PasswordResetConfirmState> {
+  const token = String(formData.get("token") ?? "").trim();
+  const password = String(formData.get("password") ?? "").trim();
+  const confirmPassword = String(formData.get("confirmPassword") ?? "").trim();
+
+  if (!token) {
+    return {
+      status: "error",
+      message: "لینک بازیابی معتبر نیست.",
+    };
+  }
+
+  if (password.length < 8) {
+    return {
+      status: "error",
+      message: "رمز عبور جدید باید حداقل ۸ کاراکتر باشد.",
+    };
+  }
+
+  if (password !== confirmPassword) {
+    return {
+      status: "error",
+      message: "تکرار رمز عبور با رمز جدید یکسان نیست.",
+    };
+  }
+
+  try {
+    await consumePasswordResetToken({
+      token,
+      passwordHash: await hashPassword(password),
+    });
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "بازنشانی رمز با خطا مواجه شد.",
+    };
+  }
+
+  revalidatePath("/login");
+  redirect("/login?reset=success");
 }

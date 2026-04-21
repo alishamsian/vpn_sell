@@ -14,6 +14,11 @@ type AuthFormProps = {
   alternateHref: string;
   alternateText: string;
   action: (state: AuthActionState, formData: FormData) => Promise<AuthActionState>;
+  notice?: string;
+  helperLink?: {
+    label: string;
+    href: string;
+  };
   fields: Array<
     | {
         name: string;
@@ -60,6 +65,10 @@ export function AuthForm(props: AuthFormProps) {
       </div>
 
       <form action={formAction} className="mt-8 space-y-4">
+        {props.notice ? (
+          <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{props.notice}</div>
+        ) : null}
+
         {props.fields.map((field) => (
           <div key={field.name} className="space-y-2">
             <label htmlFor={field.name} className="text-sm font-medium text-slate-700">
@@ -85,6 +94,14 @@ export function AuthForm(props: AuthFormProps) {
             }`}
           >
             {state.message}
+          </div>
+        ) : null}
+
+        {props.helperLink ? (
+          <div className="text-left text-sm">
+            <Link href={props.helperLink.href} className="font-medium text-sky-700 transition hover:text-sky-800">
+              {props.helperLink.label}
+            </Link>
           </div>
         ) : null}
 

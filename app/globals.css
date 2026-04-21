@@ -1,3 +1,5 @@
+@import "@fontsource-variable/vazirmatn";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,6 +10,12 @@
 
 body {
   @apply min-h-screen bg-slate-50 text-slate-950 antialiased;
+  font-family: "Vazirmatn Variable", "Vazirmatn", system-ui, sans-serif;
+  background-image:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.10), transparent 22%),
+    radial-gradient(circle at top left, rgba(15, 23, 42, 0.05), transparent 26%),
+    radial-gradient(circle at left center, rgba(56, 189, 248, 0.06), transparent 20%);
+  background-attachment: fixed;
 }
 
 a {
@@ -23,4 +31,25 @@ textarea {
 
 ::selection {
   @apply bg-sky-100 text-sky-950;
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.28);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.38);
+  background-clip: padding-box;
 }

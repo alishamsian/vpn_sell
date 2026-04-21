@@ -10,6 +10,9 @@ async function main() {
   const adminPassword = process.env.ADMIN_PASSWORD ?? "Admin123456";
   const passwordHash = await bcrypt.hash(adminPassword, 10);
 
+  await prisma.message.deleteMany();
+  await prisma.conversation.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.order.deleteMany();
   await prisma.account.deleteMany();
@@ -29,20 +32,26 @@ async function main() {
   const plans = await prisma.$transaction([
     prisma.plan.create({
       data: {
-        name: "۲۰ گیگ / ۳۰ روز",
-        price: 9.99,
+        name: "پلن پایه ۲۰ گیگ",
+        price: 249000,
+        durationDays: 30,
+        maxUsers: null,
       },
     }),
     prisma.plan.create({
       data: {
-        name: "۵۰ گیگ / ۶۰ روز",
-        price: 19.99,
+        name: "پلن حرفه‌ای ۵۰ گیگ",
+        price: 489000,
+        durationDays: 60,
+        maxUsers: null,
       },
     }),
     prisma.plan.create({
       data: {
-        name: "نامحدود / ۹۰ روز",
-        price: 29.99,
+        name: "پلن ویژه نامحدود",
+        price: 799000,
+        durationDays: 90,
+        maxUsers: null,
       },
     }),
   ]);

@@ -4,12 +4,20 @@ import { loginAction } from "@/app/(auth)/actions";
 import { AuthForm } from "@/components/auth-form";
 import { getSession } from "@/lib/auth";
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams?: Promise<{
+    reset?: string;
+  }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await getSession();
 
   if (session) {
     redirect("/dashboard");
   }
+
+  const params = searchParams ? await searchParams : undefined;
 
   return (
     <AuthForm
@@ -19,6 +27,11 @@ export default async function LoginPage() {
       alternateText="حساب ندارید؟"
       alternateLabel="ثبت‌نام"
       alternateHref="/register"
+      notice={params?.reset === "success" ? "رمز عبور شما با موفقیت تغییر کرد. حالا وارد شوید." : undefined}
+      helperLink={{
+        href: "/forgot-password",
+        label: "رمز عبور را فراموش کرده‌اید؟",
+      }}
       action={loginAction}
       fields={[
         {

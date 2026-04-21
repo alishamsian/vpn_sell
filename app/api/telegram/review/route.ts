@@ -57,6 +57,7 @@ export async function POST(request: Request) {
       decision,
       source: "TELEGRAM",
       reviewNote: decision === "approve" ? "تایید از تلگرام" : "رد از تلگرام",
+      actorId: callback.from?.id ? String(callback.from.id) : undefined,
     });
 
     const payment = await prisma.payment.findUnique({

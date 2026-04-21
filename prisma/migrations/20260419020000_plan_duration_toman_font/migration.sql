@@ -1,0 +1,13 @@
+-- Alter plan pricing and metadata
+ALTER TABLE "Plan"
+ADD COLUMN "durationDays" INTEGER NOT NULL DEFAULT 30,
+ADD COLUMN "maxUsers" INTEGER;
+
+ALTER TABLE "Plan"
+ALTER COLUMN "price" TYPE DECIMAL(12,0) USING ROUND("price");
+
+ALTER TABLE "Order"
+ALTER COLUMN "amount" TYPE DECIMAL(12,0) USING ROUND("amount");
+
+ALTER TABLE "Payment"
+ALTER COLUMN "amount" TYPE DECIMAL(12,0) USING ROUND("amount");
