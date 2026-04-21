@@ -1,7 +1,10 @@
+import type { OrderStatus } from "@prisma/client";
+
 import { ChatShell } from "@/components/chat/chat-shell";
+import type { UserChatOrderOption } from "@/components/chat/user-chat-order-context-picker";
 import { requireUser } from "@/lib/auth";
 import { ensureGeneralConversation } from "@/lib/chat";
-import { getUserChatConversations, getUserConversationDetails } from "@/lib/queries";
+import { getDashboardOrders, getUserChatConversations, getUserConversationDetails } from "@/lib/queries";
 import {
   sendUserChatMessageAction,
   toggleUserConversationStatusAction,
@@ -15,10 +18,29 @@ type DashboardChatPageProps = {
   }>;
 };
 
+function orderStatusLabel(status: OrderStatus) {
+  if (status === "PENDING_PAYMENT") {
+    return "در انتظار پرداخت";
+  }
+
+  if (status === "PAYMENT_SUBMITTED") {
+    return "در انتظار بررسی";
+  }
+
+  if (status === "WAITING_FOR_ACCOUNT") {
+    return "در انتظار تحویل";
+  }
+
+  return "تحویل‌شده";
+}
+
 export default async function DashboardChatPage({ searchParams }: DashboardChatPageProps) {
   const user = await requireUser();
   const generalConversation = await ensureGeneralConversation(user.id);
-  const conversations = await getUserChatConversations(user.id);
+  const [conversations, orders] = await Promise.all([
+    getUserChatConversations(user.id),
+    getDashboardOrders(user.id),
+  ]);
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const selectedConversationId =
     resolvedSearchParams?.c && conversations.some((conversation) => conversation.id === resolvedSearchParams.c)
@@ -26,15 +48,20 @@ export default async function DashboardChatPage({ searchParams }: DashboardChatP
       : generalConversation.id;
   const conversation = await getUserConversationDetails(selectedConversationId, user.id);
 
+  const userChatOrderOptions: UserChatOrderOption[] = orders.map((order) => ({
+    id: order.id,
+    planName: order.plan.name,
+    statusLabel: orderStatusLabel(order.status),
+  }));
+
   return (
-    <div className="space-y-8">
-      <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-soft">
-        <div className="max-w-3xl space-y-3">
-          <div className="text-sm font-medium text-slate-500">مرکز گفتگو با پشتیبانی</div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">چت حرفه‌ای پشتیبانی</h1>
-          <p className="text-sm leading-7 text-slate-600">
-            از این بخش می‌توانید هم گفت‌وگوی عمومی با پشتیبانی را مدیریت کنید و هم مکالمه‌های
-            مرتبط با سفارش‌های خود را یکجا ببینید.
+    <div className="space-y-4 sm:space-y-8">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft sm:rounded-3xl sm:p-6 lg:p-8">
+        <div className="max-w-3xl space-y-2 sm:space-y-3">
+          <div className="text-xs font-medium text-slate-500 sm:text-sm">پشتیبانی</div>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl lg:text-3xl">چت</h1>
+          <p className="hidden text-sm leading-7 text-slate-600 sm:block">
+            گفتگوی عمومی و مکالمه‌های مرتبط با هر سفارش در یک‌جا.
           </p>
         </div>
       </section>
@@ -47,6 +74,8 @@ export default async function DashboardChatPage({ searchParams }: DashboardChatP
         sendAction={sendUserChatMessageAction}
         toggleStatusAction={toggleUserConversationStatusAction}
         emptyListText="هنوز گفت‌وگویی برای شما ثبت نشده است."
+        userChatOrderOptions={userChatOrderOptions}
+        generalConversationId={generalConversation.id}
       />
     </div>
   );

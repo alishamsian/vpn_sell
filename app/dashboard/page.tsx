@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { DeliveredConfigCard } from "@/components/delivered-config-card";
 import {
   formatDate,
   formatDuration,
@@ -36,62 +35,44 @@ export default async function DashboardPage() {
   const expiredOrders = orders.filter(
     (order) => order.status === "FULFILLED" && getExpiryStatus(order.expiresAt) === "expired",
   );
+  const notificationsPreview = notifications.slice(0, 3);
 
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-soft">
-        <div className="flex flex-wrap items-end justify-between gap-6">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
             <div className="text-sm font-medium text-slate-500">داشبورد کاربری</div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-              {user.name}، سفارش‌های شما
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              {user.name}، خوش آمدید
             </h1>
             <p className="max-w-2xl text-sm leading-7 text-slate-600">
-              وضعیت پرداخت، سفارش‌های در حال بررسی و کانفیگ‌های تحویل‌شده را از همین‌جا پیگیری
-              کنید.
+              سفارش‌ها، وضعیت پرداخت و تمدید را سریع و شفاف از همین‌جا مدیریت کنید.
             </p>
           </div>
 
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
-          >
-            ثبت سفارش جدید
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/" className="btn-brand">
+              ثبت سفارش جدید
+            </Link>
+            <Link
+              href="/dashboard/chat"
+              className="inline-flex min-h-[2.75rem] items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/25 focus-visible:ring-offset-2"
+            >
+              چت با پشتیبانی
+            </Link>
+          </div>
         </div>
-      </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <DashboardStatCard
-          label="کل سفارش‌ها"
-          value={toPersianNumber(totalOrders)}
-          tone="default"
-        />
-        <DashboardStatCard
-          label="تحویل‌شده"
-          value={toPersianNumber(fulfilledOrders)}
-          tone="success"
-        />
-        <DashboardStatCard
-          label="نیازمند اقدام"
-          value={toPersianNumber(pendingOrders)}
-          tone="warning"
-        />
-        <DashboardStatCard
-          label="در انتظار تحویل"
-          value={toPersianNumber(waitingForAccountOrders)}
-          tone="default"
-        />
-        <DashboardStatCard
-          label="مجموع پرداخت موفق"
-          value={formatPrice(totalSpent)}
-          tone="default"
-        />
-        <DashboardStatCard
-          label="نزدیک انقضا"
-          value={toPersianNumber(expiringOrders.length)}
-          tone="warning"
-        />
+        <div className="mt-6 flex flex-wrap gap-2">
+          <DashboardStatChip label="کل سفارش‌ها" value={toPersianNumber(totalOrders)} tone="default" />
+          <DashboardStatChip label="تحویل‌شده" value={toPersianNumber(fulfilledOrders)} tone="success" />
+          <DashboardStatChip label="نیازمند اقدام" value={toPersianNumber(pendingOrders)} tone="warning" />
+          <DashboardStatChip label="در انتظار تحویل" value={toPersianNumber(waitingForAccountOrders)} tone="default" />
+          <DashboardStatChip label="در حال بررسی" value={toPersianNumber(reviewingOrders)} tone="warning" />
+          <DashboardStatChip label="نزدیک انقضا" value={toPersianNumber(expiringOrders.length)} tone="warning" />
+          <DashboardStatChip label="مجموع پرداخت موفق" value={formatPrice(totalSpent)} tone="default" />
+        </div>
       </section>
 
       {expiringOrders.length > 0 || expiredOrders.length > 0 ? (
@@ -131,33 +112,49 @@ export default async function DashboardPage() {
       ) : null}
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-slate-950">اعلان‌های اخیر</h2>
-            <p className="mt-1 text-sm text-slate-600">آخرین تغییرات سفارش و نتیجه بررسی‌ها اینجا نمایش داده می‌شود.</p>
+            <h2 className="text-xl font-semibold text-slate-950">اعلان‌ها</h2>
+            <p className="mt-1 text-sm text-slate-600">نتیجه بررسی‌ها و تغییرات مهم سفارش‌ها.</p>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3">
-          {notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-sm font-semibold text-slate-900">{notification.title}</div>
-                <div className="text-xs text-slate-500">{formatDateTime(notification.createdAt)}</div>
+        {notifications.length === 0 ? (
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+            هنوز اعلانی برای شما ثبت نشده است.
+          </div>
+        ) : (
+          <div className="mt-5 space-y-3">
+            {notificationsPreview.map((notification) => (
+              <div key={notification.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900">{notification.title}</div>
+                  <div className="text-xs text-slate-500">{formatDateTime(notification.createdAt)}</div>
+                </div>
+                <div className="mt-1 text-sm leading-6 text-slate-600">{notification.message}</div>
               </div>
-              <div className="mt-1 text-sm leading-6 text-slate-600">{notification.message}</div>
-            </div>
-          ))}
+            ))}
 
-          {notifications.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-              هنوز اعلانی برای شما ثبت نشده است.
-            </div>
-          ) : null}
-        </div>
+            {notifications.length > notificationsPreview.length ? (
+              <details className="rounded-2xl border border-slate-200 bg-white">
+                <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                  نمایش همه اعلان‌ها
+                </summary>
+                <div className="space-y-3 px-4 pb-4">
+                  {notifications.slice(notificationsPreview.length).map((notification) => (
+                    <div key={notification.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="text-sm font-semibold text-slate-900">{notification.title}</div>
+                        <div className="text-xs text-slate-500">{formatDateTime(notification.createdAt)}</div>
+                      </div>
+                      <div className="mt-1 text-sm leading-6 text-slate-600">{notification.message}</div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ) : null}
+          </div>
+        )}
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
@@ -168,7 +165,6 @@ export default async function DashboardPage() {
               لیست کامل سفارش‌ها با وضعیت فعلی و مسیر ادامه.
             </p>
           </div>
-          <div className="text-sm text-slate-500">در حال بررسی: {toPersianNumber(reviewingOrders)}</div>
         </div>
 
         <div className="mt-6 grid gap-4">
@@ -201,40 +197,26 @@ export default async function DashboardPage() {
                   </div>
                 </div>
 
-                {order.status === "FULFILLED" && order.account ? (
-                  <div className="grid gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 lg:grid-cols-[220px_minmax(0,1fr)]">
-                    <div className="rounded-lg bg-white/85 p-4">
-                      <div className="text-sm font-semibold text-slate-950">کانفیگ آماده دریافت است</div>
-                      <div className="mt-2 text-xs leading-6 text-slate-600">
-                        کانفیگ این سفارش تحویل شده و از همین بخش می‌توانید آن را کپی، اسکن یا
-                        کامل مشاهده کنید.
-                      </div>
-
-                      <Link
-                        href={`/dashboard/orders/${order.id}`}
-                        className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
-                      >
-                        اطلاعات بیشتر
-                      </Link>
-                    </div>
-
-                    <DeliveredConfigCard config={order.account.config} />
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div
+                  className={`rounded-xl border p-4 ${
+                    order.status === "FULFILLED"
+                      ? "border-emerald-200 bg-emerald-50/60"
+                      : order.status === "WAITING_FOR_ACCOUNT"
+                        ? "border-amber-200 bg-amber-50/60"
+                        : "border-slate-200 bg-slate-50"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="text-sm font-medium text-slate-950">{getOrderActionTitle(order)}</div>
-                    <div className="mt-2 text-xs leading-6 text-slate-500">
-                      {getOrderActionDescription(order)}
-                    </div>
-
                     <Link
                       href={`/dashboard/orders/${order.id}`}
-                      className="mt-4 inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+                      className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
                     >
-                      اطلاعات بیشتر
+                      جزئیات
                     </Link>
                   </div>
-                )}
+                  <div className="mt-2 text-xs leading-6 text-slate-600">{getOrderActionDescription(order)}</div>
+                </div>
               </div>
             </article>
           ))}
@@ -350,6 +332,30 @@ function getOrderTone(
   }
 
   return "neutral" as const;
+}
+
+function DashboardStatChip({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "success" | "warning";
+}) {
+  const className =
+    tone === "success"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : tone === "warning"
+        ? "border-amber-200 bg-amber-50 text-amber-800"
+        : "border-slate-200 bg-white text-slate-700";
+
+  return (
+    <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold ${className}`}>
+      <span className="text-[11px] font-medium opacity-80">{label}</span>
+      <span className="text-sm font-semibold text-slate-950">{value}</span>
+    </div>
+  );
 }
 
 function getPaymentTone(status: "PENDING" | "APPROVED" | "REJECTED" | undefined) {

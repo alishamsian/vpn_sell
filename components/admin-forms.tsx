@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 
 import { addAccountsAction, createPlanAction } from "@/app/admin/actions";
 import { useToast } from "@/components/toast-provider";
+import { AppLoadingButtonLabel } from "@/components/ui/app-loading";
 type AdminFormsProps = {
   plans: Array<{
     id: string;
@@ -32,7 +33,12 @@ function SubmitButton({ idleLabel, pendingLabel }: { idleLabel: string; pendingL
       disabled={pending}
       className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
     >
-      {pending ? pendingLabel : idleLabel}
+      <AppLoadingButtonLabel
+        pending={pending}
+        idleLabel={idleLabel}
+        pendingLabel={pendingLabel}
+        spinnerClassName="h-4 w-4 text-white"
+      />
     </button>
   );
 }

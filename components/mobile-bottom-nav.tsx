@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { Home, LayoutDashboard, LogIn, LogOut, Shield, ShieldCheck, UserPlus } from "lucide-react";
+import { Home, LayoutDashboard, LogIn, LogOut, Package2, Shield, ShoppingBag, UserPlus } from "lucide-react";
 
 type SessionLike = {
   role: "USER" | "ADMIN";
@@ -40,7 +40,7 @@ export function MobileBottomNav({
               {session.role === "ADMIN" ? (
                 <MobileNavLink href="/admin" label="ادمین" icon={Shield} active={false} />
               ) : (
-                <MobileNavLink href="/" label="سفارش" icon={ShieldCheck} active={false} />
+                <MobileNavLink href="/" label="سفارش" icon={ShoppingBag} active={false} />
               )}
               {logoutSlot}
             </>
@@ -48,7 +48,7 @@ export function MobileBottomNav({
             <>
               <MobileNavLink href="/login" label="ورود" icon={LogIn} active={pathname === "/login"} />
               <MobileNavLink href="/register" label="ثبت‌نام" icon={UserPlus} active={pathname === "/register"} />
-              <MobileNavLink href="/" label="پلن‌ها" icon={ShieldCheck} active={false} />
+              <MobileNavLink href="/" label="پلن‌ها" icon={Package2} active={false} />
             </>
           )}
         </div>

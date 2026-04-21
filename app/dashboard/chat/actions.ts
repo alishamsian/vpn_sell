@@ -1,8 +1,43 @@
 "use server";
 
-import { getOrCreateConversationForUser, sendConversationMessage, setConversationStatus } from "@/lib/chat";
+import {
+  ensureOrderConversation,
+  getOrCreateConversationForUser,
+  sendConversationMessage,
+  setConversationStatus,
+} from "@/lib/chat";
 import { requireUser } from "@/lib/auth";
 import { type ChatMutationState } from "@/lib/chat-types";
+
+export async function openUserOrderConversation(orderId: string): Promise<ChatMutationState> {
+  try {
+    const user = await requireUser();
+    const trimmed = orderId.trim();
+
+    if (!trimmed) {
+      return {
+        status: "error",
+        message: "شناسه سفارش معتبر نیست.",
+      };
+    }
+
+    const conversation = await ensureOrderConversation({
+      orderId: trimmed,
+      userId: user.id,
+    });
+
+    return {
+      status: "success",
+      message: "",
+      conversationId: conversation.id,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "باز کردن گفتگوی سفارش با خطا مواجه شد.",
+    };
+  }
+}
 
 export async function sendUserChatMessageAction(
   _previousState: ChatMutationState,

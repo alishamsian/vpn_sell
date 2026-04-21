@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import type { AuthActionState } from "@/app/(auth)/actions";
+import { AppLoadingButtonLabel } from "@/components/ui/app-loading";
 
 type AuthFormProps = {
   title: string;
@@ -47,9 +48,14 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+      className="btn-brand w-full disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:brightness-100 disabled:active:scale-100"
     >
-      {pending ? "در حال پردازش..." : label}
+      <AppLoadingButtonLabel
+        pending={pending}
+        idleLabel={label}
+        pendingLabel="در حال پردازش…"
+        spinnerClassName="h-4 w-4 text-white"
+      />
     </button>
   );
 }
@@ -58,7 +64,7 @@ export function AuthForm(props: AuthFormProps) {
   const [state, formAction] = useActionState(props.action, initialState);
 
   return (
-    <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-soft">
+    <div className="card-surface mx-auto max-w-md rounded-3xl p-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold text-slate-950">{props.title}</h1>
         <p className="text-sm leading-6 text-slate-600">{props.description}</p>
@@ -80,7 +86,7 @@ export function AuthForm(props: AuthFormProps) {
               type={field.type === "phone" ? "text" : field.type ?? "text"}
               dir={field.type === "phone" || field.type === "email" || field.type === "password" ? "ltr" : "rtl"}
               placeholder={field.placeholder}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-slate-400"
+              className="input-brand"
             />
           </div>
         ))}
@@ -99,7 +105,7 @@ export function AuthForm(props: AuthFormProps) {
 
         {props.helperLink ? (
           <div className="text-left text-sm">
-            <Link href={props.helperLink.href} className="font-medium text-sky-700 transition hover:text-sky-800">
+            <Link href={props.helperLink.href} className="link-brand">
               {props.helperLink.label}
             </Link>
           </div>
@@ -110,7 +116,7 @@ export function AuthForm(props: AuthFormProps) {
 
       <p className="mt-6 text-center text-sm text-slate-600">
         {props.alternateText}{" "}
-        <Link href={props.alternateHref} className="font-medium text-slate-950">
+        <Link href={props.alternateHref} className="font-semibold text-slate-950 underline-offset-4 transition hover:text-brand-cyan hover:underline">
           {props.alternateLabel}
         </Link>
       </p>

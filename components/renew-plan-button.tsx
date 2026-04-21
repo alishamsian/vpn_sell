@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { RenewActionState } from "@/app/dashboard/orders/[orderId]/actions";
 import { renewPlanAction } from "@/app/dashboard/orders/[orderId]/actions";
 import { useToast } from "@/components/toast-provider";
+import { AppLoadingButtonLabel } from "@/components/ui/app-loading";
 
 const initialState: RenewActionState = {
   status: "idle",
@@ -43,7 +44,12 @@ export function RenewPlanButton({ orderId }: RenewPlanButtonProps) {
         disabled={pending}
         className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {pending ? "در حال ساخت سفارش تمدید..." : "تمدید همین پلن"}
+        <AppLoadingButtonLabel
+          pending={pending}
+          idleLabel="تمدید همین پلن"
+          pendingLabel="در حال ساخت سفارش…"
+          spinnerClassName="h-4 w-4 text-slate-600"
+        />
       </button>
     </form>
   );

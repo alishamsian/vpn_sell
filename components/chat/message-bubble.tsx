@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import type { ChatMessageItem } from "@/lib/queries";
+import { AppLoadingSpinner } from "@/components/ui/app-loading";
 
 type MessageBubbleProps = {
   message: ChatMessageItem;
@@ -49,7 +50,12 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
 
         <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-400">
           <span>{formatDateTime(message.createdAt)}</span>
-          {isPending ? <span>در حال ارسال...</span> : null}
+          {isPending ? (
+            <span className="inline-flex items-center gap-1 text-sky-600">
+              <AppLoadingSpinner className="h-3 w-3 text-sky-600" />
+              در حال ارسال…
+            </span>
+          ) : null}
           {message.readAt ? <span>خوانده شد</span> : null}
         </div>
       </div>

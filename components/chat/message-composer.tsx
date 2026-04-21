@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { AttachmentPicker } from "@/components/chat/attachment-picker";
 import { useToast } from "@/components/toast-provider";
+import { AppLoadingButtonLabel } from "@/components/ui/app-loading";
 import {
   initialChatMutationState,
   type ChatMutationState,
@@ -33,7 +34,12 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
       disabled={pending || disabled}
       className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
     >
-      {pending ? "در حال ارسال..." : "ارسال پیام"}
+      <AppLoadingButtonLabel
+        pending={pending}
+        idleLabel="ارسال پیام"
+        pendingLabel="در حال ارسال…"
+        spinnerClassName="h-4 w-4 text-white"
+      />
     </button>
   );
 }

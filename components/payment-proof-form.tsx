@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import type { PaymentActionState } from "@/app/dashboard/orders/[orderId]/actions";
+import { AppLoadingButtonLabel } from "@/components/ui/app-loading";
 
 type PaymentProofFormProps = {
   orderId: string;
@@ -30,7 +31,12 @@ function SubmitButton({ disabled = false }: { disabled?: boolean }) {
       disabled={pending || disabled}
       className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
     >
-      {pending ? "در حال ارسال..." : "ثبت رسید پرداخت"}
+      <AppLoadingButtonLabel
+        pending={pending}
+        idleLabel="ثبت رسید پرداخت"
+        pendingLabel="در حال ارسال…"
+        spinnerClassName="h-4 w-4 text-white"
+      />
     </button>
   );
 }

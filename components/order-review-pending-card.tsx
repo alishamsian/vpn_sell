@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { AppLoadingButtonLabel } from "@/components/ui/app-loading";
+
 type OrderReviewPendingCardProps = {
   refreshIntervalSeconds?: number;
 };
@@ -107,7 +109,12 @@ export function OrderReviewPendingCard({
           }}
           className="inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
         >
-          {isRefreshing ? "در حال به‌روزرسانی..." : "بررسی دوباره وضعیت"}
+          <AppLoadingButtonLabel
+            pending={isRefreshing}
+            idleLabel="بررسی دوباره وضعیت"
+            pendingLabel="در حال به‌روزرسانی…"
+            spinnerClassName="h-4 w-4 text-white"
+          />
         </button>
 
         <a

@@ -10,10 +10,11 @@ import {
   LayoutDashboard,
   MessageSquareText,
   Package2,
-  ShieldCheck,
   Users,
   X,
 } from "lucide-react";
+
+import { BrandMark } from "@/components/brand-logo";
 
 type AdminSidebarProps = {
   adminName: string;
@@ -85,7 +86,7 @@ export function AdminSidebar({ adminName, adminEmail, stats }: AdminSidebarProps
       <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] shadow-soft">
         <div className="border-b border-slate-200/80 p-5">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-            <ShieldCheck className="h-3.5 w-3.5" />
+            <BrandMark className="h-3.5 w-auto max-w-[3.25rem] opacity-90" />
             دسترسی ادمین فعال
           </div>
           <div className="mt-4 text-lg font-semibold text-slate-950">{adminName}</div>
@@ -275,7 +276,7 @@ function AdminNavDrawer({
         <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 pb-3 pt-4 sm:px-5">
           <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-              <ShieldCheck className="h-3.5 w-3.5" />
+              <BrandMark className="h-3.5 w-auto max-w-[3.25rem] opacity-90" />
               دسترسی ادمین فعال
             </div>
             <div className="mt-3 truncate text-base font-semibold text-slate-950">{adminName}</div>

@@ -7,6 +7,7 @@ import {
   resetPasswordAction,
   type PasswordResetConfirmState,
 } from "@/app/(auth)/actions";
+import { AppLoadingButtonLabel } from "@/components/ui/app-loading";
 
 const initialState: PasswordResetConfirmState = {
   status: "idle",
@@ -22,7 +23,12 @@ function SubmitButton() {
       disabled={pending}
       className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
     >
-      {pending ? "در حال ذخیره..." : "ذخیره رمز جدید"}
+      <AppLoadingButtonLabel
+        pending={pending}
+        idleLabel="ذخیره رمز جدید"
+        pendingLabel="در حال ذخیره…"
+        spinnerClassName="h-4 w-4 text-white"
+      />
     </button>
   );
 }

@@ -11,6 +11,7 @@ import {
 import type { AdminActionState } from "@/app/admin/actions";
 import type { AdminPlanDashboard } from "@/lib/queries";
 import { formatDuration, formatPrice, formatUserLimit } from "@/lib/format";
+import { AppLoadingButtonLabel } from "@/components/ui/app-loading";
 
 type AdminPlansManagerProps = {
   plans: AdminPlanDashboard[];
@@ -55,7 +56,18 @@ function SubmitButton({
       disabled={pending || disabled}
       className={`${className}${fullWidth ? " w-full" : ""}`}
     >
-      {pending ? pendingLabel : idleLabel}
+      <AppLoadingButtonLabel
+        pending={pending}
+        idleLabel={idleLabel}
+        pendingLabel={pendingLabel}
+        spinnerClassName={
+          variant === "danger"
+            ? "h-4 w-4 text-white"
+            : variant === "secondary"
+              ? "h-4 w-4 text-slate-700"
+              : "h-4 w-4 text-white"
+        }
+      />
     </button>
   );
 }

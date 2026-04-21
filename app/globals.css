@@ -4,17 +4,92 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .btn-brand {
+    @apply inline-flex min-h-[2.75rem] items-center justify-center rounded-2xl bg-gradient-to-l from-brand-cyan to-brand-amber px-5 py-3 text-sm font-semibold text-white shadow-md shadow-brand transition hover:brightness-110 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+
+  .btn-brand-sm {
+    @apply inline-flex min-h-[2.5rem] items-center justify-center gap-2 rounded-full bg-gradient-to-l from-brand-cyan to-brand-amber px-4 py-2 text-center text-sm font-semibold text-white shadow-md shadow-brand transition hover:brightness-110 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+
+  .card-surface {
+    @apply rounded-card border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] shadow-soft;
+  }
+
+  .input-brand {
+    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition placeholder:text-slate-400;
+    @apply focus:border-sky-300 focus:ring-2 focus:ring-brand-cyan/20;
+  }
+
+  .link-brand {
+    @apply font-medium text-sky-700 transition hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/35 focus-visible:ring-offset-2 rounded-sm;
+  }
+}
+
+@keyframes section-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stagger > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+@layer utilities {
+  .hero-stagger > * {
+    animation: section-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .hero-stagger > *:nth-child(1) {
+    animation-delay: 0.04s;
+  }
+  .hero-stagger > *:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+  .hero-stagger > *:nth-child(3) {
+    animation-delay: 0.16s;
+  }
+  .hero-stagger > *:nth-child(4) {
+    animation-delay: 0.22s;
+  }
+  .hero-stagger > *:nth-child(5) {
+    animation-delay: 0.28s;
+  }
+  .hero-stagger > *:nth-child(6) {
+    animation-delay: 0.34s;
+  }
+}
+
 :root {
   color-scheme: light;
+  --brand-cyan: #00a8ff;
+  --brand-amber: #e89420;
+  --brand-ink: #050a18;
+  --radius-shell: 1.75rem;
+  --radius-card: 2rem;
 }
 
 body {
   @apply min-h-screen bg-slate-50 text-slate-950 antialiased;
   font-family: "Vazirmatn Variable", "Vazirmatn", system-ui, sans-serif;
   background-image:
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.10), transparent 22%),
-    radial-gradient(circle at top left, rgba(15, 23, 42, 0.05), transparent 26%),
-    radial-gradient(circle at left center, rgba(56, 189, 248, 0.06), transparent 20%);
+    radial-gradient(circle at top right, rgba(0, 168, 255, 0.14), transparent 24%),
+    radial-gradient(circle at top left, rgba(5, 10, 24, 0.07), transparent 28%),
+    radial-gradient(circle at 15% 85%, rgba(232, 148, 32, 0.08), transparent 22%),
+    radial-gradient(circle at left center, rgba(56, 189, 248, 0.05), transparent 20%);
   background-attachment: fixed;
 }
 
@@ -52,4 +127,52 @@ textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(15, 23, 42, 0.38);
   background-clip: padding-box;
+}
+
+/* لودینگ تم VPN: بستهٔ داده روی تونل */
+@keyframes app-loading-packet {
+  0% {
+    left: 0;
+    transform: translate(0, -50%);
+    opacity: 0.2;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    transform: translate(-100%, -50%);
+    opacity: 0.2;
+  }
+}
+
+.app-loading-packet {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 0.4rem;
+  height: 0.4rem;
+  background: linear-gradient(135deg, #00a8ff, #0e7490);
+  animation: app-loading-packet 1.45s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* میله‌های سیگنال */
+@keyframes app-loading-signal {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scaleY(0.45);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.app-loading-signal {
+  transform-origin: bottom center;
+  animation: app-loading-signal 0.8s ease-in-out infinite;
 }

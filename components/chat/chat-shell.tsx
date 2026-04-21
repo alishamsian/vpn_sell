@@ -6,6 +6,10 @@ import { ConversationList } from "@/components/chat/conversation-list";
 import { MessageComposer } from "@/components/chat/message-composer";
 import { MessageThread } from "@/components/chat/message-thread";
 import {
+  UserChatOrderContextPicker,
+  type UserChatOrderOption,
+} from "@/components/chat/user-chat-order-context-picker";
+import {
   CHAT_SELECTION_CHANGED_EVENT,
   getStoredChatSelection,
   getChatSelectionStorageKey,
@@ -28,6 +32,9 @@ type ChatShellProps = {
   toggleStatusAction: (state: ChatMutationState, formData: FormData) => Promise<ChatMutationState>;
   emptyListText: string;
   variant?: "default" | "telegramAdmin";
+  /** فقط کاربر: لیست سفارش‌ها برای جابه‌جایی بین گفتگوی عمومی و گفتگوی هر سفارش */
+  userChatOrderOptions?: UserChatOrderOption[];
+  generalConversationId?: string;
 };
 
 export function ChatShell({
@@ -39,6 +46,8 @@ export function ChatShell({
   toggleStatusAction,
   emptyListText,
   variant = "default",
+  userChatOrderOptions,
+  generalConversationId: generalConversationIdProp,
 }: ChatShellProps) {
   const [conversations, setConversations] = useState(initialConversations);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
@@ -295,27 +304,55 @@ export function ChatShell({
 
   const isTelegramAdmin = variant === "telegramAdmin" && role === "ADMIN";
 
+  const generalConversationId = useMemo(() => {
+    if (generalConversationIdProp) {
+      return generalConversationIdProp;
+    }
+
+    return conversations.find((c) => c.type === "GENERAL_SUPPORT")?.id ?? "";
+  }, [conversations, generalConversationIdProp]);
+
+  const showUserOrderPicker =
+    role === "USER" &&
+    !isTelegramAdmin &&
+    Boolean(generalConversationId) &&
+    (userChatOrderOptions?.length ?? 0) > 0;
+
   return (
     <div
       className={
         isTelegramAdmin
           ? "grid min-h-[calc(100vh-11rem)] gap-0 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft lg:grid-cols-[360px_minmax(0,1fr)]"
-          : "grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]"
+          : "flex min-h-[calc(100dvh-14rem)] flex-col gap-4 overflow-hidden lg:min-h-[calc(100vh-13rem)] lg:grid lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)] lg:gap-6"
       }
     >
-      <ConversationList
-        conversations={conversations}
-        selectedConversationId={selectedConversationId}
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        onSelect={handleConversationSelected}
-        emptyText={emptyListText}
-        role={role}
-        title={isTelegramAdmin ? "چت کاربران" : undefined}
-        variant={isTelegramAdmin ? "embedded" : "default"}
-      />
+      <div
+        className={
+          isTelegramAdmin
+            ? "min-h-0"
+            : "flex max-h-[min(38dvh,260px)] min-h-0 shrink-0 flex-col lg:max-h-none lg:h-full"
+        }
+      >
+        <ConversationList
+          conversations={conversations}
+          selectedConversationId={selectedConversationId}
+          searchValue={searchValue}
+          onSearchChange={setSearchValue}
+          onSelect={handleConversationSelected}
+          emptyText={emptyListText}
+          role={role}
+          title={isTelegramAdmin ? "چت کاربران" : undefined}
+          variant={isTelegramAdmin ? "embedded" : "default"}
+        />
+      </div>
 
-      <div className={isTelegramAdmin ? "flex min-h-0 flex-col border-r border-slate-200 bg-slate-50/40" : "space-y-4"}>
+      <div
+        className={
+          isTelegramAdmin
+            ? "flex min-h-0 flex-col border-r border-slate-200 bg-slate-50/40"
+            : "flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
+        }
+      >
         <MessageThread
           conversation={selectedConversation}
           currentUserId={currentUserId}
@@ -337,11 +374,21 @@ export function ChatShell({
           className={
             isTelegramAdmin
               ? "border-t border-slate-200 bg-white p-4"
-              : "rounded-3xl border border-slate-200 bg-white p-5 shadow-soft"
+              : "shrink-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5"
           }
         >
-          <div className="mb-3 text-sm font-semibold text-slate-900">
-            {isTelegramAdmin ? "پاسخ به کاربر" : "ارسال پیام جدید"}
+          {showUserOrderPicker ? (
+            <UserChatOrderContextPicker
+              orders={userChatOrderOptions ?? []}
+              conversations={conversations}
+              selectedConversation={selectedConversation}
+              generalConversationId={generalConversationId}
+              onSwitchConversation={handleConversationSelected}
+              refreshConversations={refreshConversations}
+            />
+          ) : null}
+          <div className="mb-2 text-xs font-semibold text-slate-900 sm:mb-3 sm:text-sm">
+            {isTelegramAdmin ? "پاسخ به کاربر" : "ارسال پیام"}
           </div>
           <MessageComposer
             action={sendAction}

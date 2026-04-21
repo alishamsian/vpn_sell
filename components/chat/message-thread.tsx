@@ -131,7 +131,7 @@ export function MessageThread({
             ? "flex h-full min-h-[720px] items-center justify-center bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.92))] p-8 text-center"
             : variant === "compactEmbedded"
               ? "flex h-full min-h-[420px] items-center justify-center bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.92))] p-5 text-center"
-            : "flex h-full min-h-[620px] items-center justify-center rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-soft"
+            : "flex min-h-[220px] flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-soft sm:min-h-[280px] lg:min-h-[360px]"
         }
       >
         <div className="max-w-md">
@@ -153,19 +153,19 @@ export function MessageThread({
           ? "flex h-full min-h-[720px] flex-col overflow-hidden bg-white"
           : variant === "compactEmbedded"
             ? "flex h-full min-h-[420px] flex-col overflow-hidden bg-white"
-          : "flex h-full min-h-[720px] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft"
+          : "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft lg:min-h-[520px]"
       }
     >
       <div
         className={`flex flex-wrap items-center justify-between border-b border-slate-200 bg-white/95 backdrop-blur ${
-          isCompact ? "gap-3 p-4" : "gap-4 p-5"
+          isCompact ? "gap-3 p-4" : "gap-3 p-4 sm:gap-4 sm:p-5"
         }`}
       >
-        <div>
-          <div className={`${isCompact ? "text-base" : "text-lg"} font-semibold text-slate-950`}>
+        <div className="min-w-0 flex-1">
+          <div className={`${isCompact ? "text-base" : "text-base sm:text-lg"} truncate font-semibold text-slate-950`}>
             {role === "ADMIN" ? conversation.user.name : conversation.title}
           </div>
-          {!isCompact ? <div className="mt-1 text-sm text-slate-500">{subtitle}</div> : null}
+          {!isCompact ? <div className="mt-1 truncate text-xs text-slate-500 sm:text-sm">{subtitle}</div> : null}
         </div>
 
         <div className={`flex flex-wrap items-center ${isCompact ? "gap-2" : "gap-3"}`}>
@@ -190,10 +190,10 @@ export function MessageThread({
         </div>
       </div>
 
-      <div className={`border-b border-slate-200 bg-white ${isCompact ? "px-4 py-3" : "px-5 py-4"}`}>
+      <div className={`border-b border-slate-200 bg-white ${isCompact ? "px-4 py-3" : "px-4 py-3 sm:px-5"}`}>
         <div
-          className={`rounded-2xl border border-slate-200 bg-slate-50 ${
-            isCompact ? "px-3 py-2" : "px-4 py-3"
+          className={`rounded-xl border border-slate-200 bg-slate-50 sm:rounded-2xl ${
+            isCompact ? "px-3 py-2" : "px-3 py-2 sm:px-4 sm:py-3"
           }`}
         >
           {isCompact ? (
@@ -201,23 +201,23 @@ export function MessageThread({
           ) : (
             <>
               <div className="text-[11px] font-medium text-slate-500">{productContext?.label}</div>
-              <div className="mt-1 text-sm font-semibold text-slate-900">{productContext?.value}</div>
-              <div className="mt-1 text-xs leading-6 text-slate-500">{productContext?.description}</div>
+              <div className="mt-0.5 truncate text-sm font-semibold text-slate-900">{productContext?.value}</div>
+              <div className="mt-1 hidden text-xs leading-6 text-slate-500 sm:block">{productContext?.description}</div>
             </>
           )}
         </div>
       </div>
 
       {!isCompact ? (
-        <div className="border-b border-slate-200 bg-white px-5 py-3">
+        <div className="hidden border-b border-slate-200 bg-white px-4 py-2 sm:block sm:px-5 sm:py-3">
           <TypingIndicator active={liveActive} />
         </div>
       ) : null}
 
       <div
         ref={listRef}
-        className={`flex-1 space-y-4 overflow-y-auto bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.92))] ${
-          isCompact ? "p-4" : "p-5"
+        className={`min-h-0 flex-1 space-y-3 overflow-y-auto bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.92))] sm:space-y-4 ${
+          isCompact ? "p-4" : "p-3 sm:p-5"
         }`}
       >
         {conversation.messages.map((message) => (
