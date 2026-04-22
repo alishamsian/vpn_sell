@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { sendConversationMessage } from "@/lib/chat";
 import {
   answerTelegramCallback,
   editTelegramMessage,
@@ -7,6 +8,14 @@ import {
 } from "@/lib/telegram";
 import { reviewPayment } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
+
+type TelegramInboundMessage = {
+  message_id?: number;
+  chat?: { id: number };
+  text?: string;
+  reply_to_message?: { message_id: number };
+  from?: { id: number; is_bot?: boolean };
+};
 
 type TelegramUpdate = {
   callback_query?: {
@@ -23,7 +32,52 @@ type TelegramUpdate = {
       caption?: string;
     };
   };
+  message?: TelegramInboundMessage;
 };
+
+async function handleTelegramAdminTextReply(message: TelegramInboundMessage) {
+  const allowedChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!allowedChatId || !message.chat?.id || String(message.chat.id) !== allowedChatId) {
+    return;
+  }
+
+  if (message.from?.is_bot) {
+    return;
+  }
+
+  const replyToId = message.reply_to_message?.message_id;
+  const text = message.text?.trim();
+
+  if (!replyToId || !text || text.startsWith("/")) {
+    return;
+  }
+
+  const origin = await prisma.message.findFirst({
+    where: { telegramBridgeMessageId: replyToId },
+    select: { conversationId: true },
+  });
+
+  if (!origin) {
+    return;
+  }
+
+  const admin = await prisma.user.findFirst({
+    where: { role: "ADMIN" },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+
+  if (!admin) {
+    return;
+  }
+
+  await sendConversationMessage({
+    conversationId: origin.conversationId,
+    senderId: admin.id,
+    senderRole: "ADMIN",
+    text,
+  });
+}
 
 export async function POST(request: Request) {
   if (!validateTelegramSecret(request)) {
@@ -31,6 +85,16 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as TelegramUpdate;
+
+  if (body.message && !body.callback_query) {
+    try {
+      await handleTelegramAdminTextReply(body.message);
+    } catch (error) {
+      console.error("[telegram webhook] chat reply failed:", error);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   const callback = body.callback_query;
 
   if (!callback?.id || !callback.data || !callback.message?.chat?.id || !callback.message.message_id) {

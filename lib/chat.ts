@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { notifyUserChatMessageOnTelegram } from "@/lib/telegram-chat-bridge";
 import { uploadChatAttachmentFile } from "@/lib/storage";
 
 const MAX_CHAT_MESSAGE_LENGTH = 4000;
@@ -190,7 +191,7 @@ export async function sendConversationMessage(params: {
     throw new Error("متن پیام بیش از حد طولانی است.");
   }
 
-  return prisma.$transaction(async (tx) => {
+  const { message: createdMessage, bridge } = await prisma.$transaction(async (tx) => {
     const conversation = await assertConversationAccess({
       tx,
       conversationId: params.conversationId,
@@ -293,8 +294,35 @@ export async function sendConversationMessage(params: {
       },
     });
 
-    return message;
+    return {
+      message,
+      bridge: {
+        conversationType: conversation.type,
+        orderId: conversation.orderId,
+        userId: conversation.userId,
+        userName: message.sender.name,
+        bodyPreview: trimmedText,
+        hasAttachment: Boolean(attachmentUrl),
+        attachmentName,
+      } as const,
+    };
   });
+
+  if (params.senderRole === "USER") {
+    void notifyUserChatMessageOnTelegram({
+      messageId: createdMessage.id,
+      conversationId: createdMessage.conversationId,
+      userId: bridge.userId,
+      userName: bridge.userName,
+      conversationType: bridge.conversationType,
+      bodyPreview: bridge.bodyPreview,
+      hasAttachment: bridge.hasAttachment,
+      attachmentName: bridge.attachmentName,
+      orderId: bridge.orderId,
+    });
+  }
+
+  return createdMessage;
 }
 
 export async function markConversationAsRead(params: {

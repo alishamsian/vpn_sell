@@ -82,6 +82,24 @@ function buildInlineKeyboard(paymentId: string) {
   };
 }
 
+/** پیام متنی به چت ادمین (برای پل چت سایت ↔ تلگرام) */
+export async function sendAdminPlainTextMessage(text: string) {
+  const { adminChatId } = getTelegramConfig();
+
+  if (!adminChatId || !isTelegramConfigured()) {
+    throw new Error("تنظیمات تلگرام کامل نیست.");
+  }
+
+  return telegramRequest<TelegramMessage>(
+    "sendMessage",
+    JSON.stringify({
+      chat_id: adminChatId,
+      text: text.slice(0, 4090),
+      disable_web_page_preview: true,
+    }),
+  );
+}
+
 export async function sendPaymentToTelegram(params: {
   paymentId: string;
   orderId: string;

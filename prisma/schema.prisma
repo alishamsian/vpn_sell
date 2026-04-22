@@ -285,6 +285,8 @@ model Message {
   attachmentName     String?
   attachmentMimeType String?
   attachmentSize     Int?
+  /// شناسهٔ پیام تلگرامی که ربات برای ادمین فرستاده تا با Reply همان پیام، پاسخ از تلگرام ثبت شود
+  telegramBridgeMessageId Int?   @unique
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
   readAt             DateTime?
