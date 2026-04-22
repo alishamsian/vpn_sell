@@ -65,7 +65,7 @@
 2. ریپوی GitHub را **Import** کنید.
 3. **Framework Preset**: Next.js (خودکار تشخیص داده می‌شود).
 4. **Root Directory**: اگر پروژه در ریشهٔ ریپو است، همان ریشه را نگه دارید.
-5. **Build Command**: پیش‌فرض `npm run build` (اسکریپت پروژه: `prisma generate && next build`).
+5. **Build Command**: پیش‌فرض `npm run build` (اسکریپت پروژه: `prisma generate && prisma migrate deploy && next build` — با هر بیلد، migrationهای معلق روی دیتابیس اعمال می‌شود؛ `DATABASE_URL` و **`DIRECT_URL`** در Vercel باید ست باشند).
 6. فعلاً **Deploy** نزنید تا اگر خواستید envها را همان اول اضافه کنید؛ یا بعد از اولین دیپلوی، envها را در Settings اضافه کرده و **Redeploy** کنید.
 
 ---
@@ -132,7 +132,9 @@
 
 جداول باید روی **همان دیتابیسی** که `DATABASE_URL` به آن اشاره می‌کند ساخته شوند.
 
-روی کامپیوتر خودتان (با نصب بودن dependencies پروژه):
+**روی Vercel:** با هر **Deploy**، دستور `npm run build` به‌صورت خودکار `prisma migrate deploy` را هم اجرا می‌کند؛ نیازی نیست migration را جداگانه فراموش کنید، به شرطی که در تنظیمات پروژه **`DATABASE_URL`** و **`DIRECT_URL`** (اتصال مستقیم، معمولاً پورت 5432) برای همان محیط ست شده باشد.
+
+**دستی** (لوکال یا سرور)، اگر خواستید بدون دیپلوی جدید migration بزنید:
 
 ```bash
 cd مسیر/پروژه
@@ -248,11 +250,11 @@ curl -sS -X POST "https://api.telegram.org/botYOUR_BOT_TOKEN/setWebhook" \
 ## مرجع سریع دستورات
 
 ```bash
-# نصب و بیلد لوکال
+# نصب و بیلد لوکال (برای بیلد کامل، DATABASE_URL و DIRECT_URL در .env لازم است)
 npm install
 npm run build
 
-# اعمال migration روی DB دوردست
+# اعمال migration دستی روی DB دوردست
 export DATABASE_URL="..."
 export DIRECT_URL="..."
 npx prisma migrate deploy
@@ -265,7 +267,7 @@ npm run seed
 
 ## به‌روزرسانی بعدی پروژه
 
-معمولاً با **push به branch اصلی**، Vercel دوباره build و deploy می‌کند. اگر migration جدید دارید، بعد از merge حتماً روی production دوباره `npx prisma migrate deploy` بزنید.
+معمولاً با **push به branch اصلی**، Vercel دوباره build و deploy می‌کند؛ در بیلد، `prisma migrate deploy` هم اجرا می‌شود. اگر envهای دیتابیس روی Preview/Development خالی باشد، بیلد همان محیط ممکن است در مرحلهٔ migration خطا بدهد — برای آن محیطها یا env بگذارید یا در Vercel برای آن branch بیلد را غیرفعال کنید.
 
 ---
 
