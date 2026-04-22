@@ -141,12 +141,12 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
       <section id="plans" className="space-y-4 scroll-mt-24">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">پلن‌های موجود</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-2xl font-semibold tracking-tight text-ink">پلن‌های موجود</h2>
+            <p className="mt-1 text-sm text-prose">
               پلن‌ها بر اساس بازه اشتراک دسته‌بندی شده‌اند تا انتخاب سریع‌تر و حرفه‌ای‌تر باشد.
             </p>
           </div>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
+          <span className="rounded-full border border-stroke bg-panel px-3 py-1 text-xs font-medium text-prose shadow-sm">
             {hasStock ? "موجود" : "اتمام موجودی"}
           </span>
         </div>
@@ -159,8 +159,8 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
               onClick={() => setActiveFilter(option.id)}
               className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                 activeFilter === option.id
-                  ? "bg-slate-950 text-white"
-                  : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-950"
+                  ? "bg-slate-950 text-white dark:bg-slate-100 dark:text-slate-950"
+                  : "border border-stroke bg-panel text-prose hover:border-stroke hover:text-ink dark:hover:bg-elevated"
               }`}
             >
               {option.label}
@@ -182,7 +182,7 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
             return (
               <article
                 key={plan.id}
-                className={`group relative overflow-hidden rounded-3xl border p-6 shadow-soft transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${cardTone.card}`}
+                className={`group relative overflow-hidden rounded-card border p-6 shadow-soft transition duration-200 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${cardTone.card}`}
               >
                 <div className={`absolute inset-0 ${cardTone.glow}`} />
                 <div className="flex items-center justify-between gap-3">
@@ -191,7 +191,7 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
                       {getDurationLabel(plan.durationDays)}
                     </div>
                     {isPopular ? (
-                      <div className="inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                      <div className="inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
                         محبوب
                       </div>
                     ) : null}
@@ -202,31 +202,31 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
                 </div>
 
                 <div className="relative mt-5">
-                  <h3 className="text-xl font-semibold text-slate-950">{plan.name}</h3>
-                  <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+                  <h3 className="text-xl font-semibold text-ink">{plan.name}</h3>
+                  <div className="mt-2 text-3xl font-semibold tracking-tight text-ink">
                     {formatPrice(plan.price)}
                   </div>
-                  <div className="mt-1 text-sm text-slate-500">پرداخت یک‌باره</div>
+                  <div className="mt-1 text-sm text-faint">پرداخت یک‌باره</div>
                 </div>
 
-                <div className="relative mt-5 grid grid-cols-2 gap-3 border-t border-slate-100/80 pt-5 text-sm text-slate-600">
+                <div className="relative mt-5 grid grid-cols-2 gap-3 border-t border-stroke/70/80 pt-5 text-sm text-prose">
                   <div>
-                    <div className="text-xs text-slate-400">مدت اشتراک</div>
-                    <div className="mt-1 font-medium text-slate-950">{formatDuration(plan.durationDays)}</div>
+                    <div className="text-xs text-faint">مدت اشتراک</div>
+                    <div className="mt-1 font-medium text-ink">{formatDuration(plan.durationDays)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-slate-400">تعداد کاربر</div>
-                    <div className="mt-1 font-medium text-slate-950">{formatUserLimit(plan.maxUsers)}</div>
+                    <div className="text-xs text-faint">تعداد کاربر</div>
+                    <div className="mt-1 font-medium text-ink">{formatUserLimit(plan.maxUsers)}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-slate-400">موجودی</div>
-                    <div className="mt-1 font-medium text-slate-950">
+                    <div className="text-xs text-faint">موجودی</div>
+                    <div className="mt-1 font-medium text-ink">
                       {new Intl.NumberFormat("fa-IR").format(plan.remainingCount)}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-slate-400">وضعیت</div>
-                    <div className="mt-1 font-medium text-slate-950">{stockLabel}</div>
+                    <div className="text-xs text-faint">وضعیت</div>
+                    <div className="mt-1 font-medium text-ink">{stockLabel}</div>
                   </div>
                 </div>
 
@@ -238,7 +238,11 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
                   type="button"
                   disabled={disabled}
                   onClick={() => handleBuy(plan.id)}
-                  className={`relative mt-6 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:bg-slate-300 ${cardTone.button}`}
+                  className={
+                    plan.remainingCount === 0
+                      ? `relative mt-6 inline-flex w-full min-h-[2.75rem] cursor-not-allowed items-center justify-center rounded-2xl px-4 py-3 text-sm font-medium ${cardTone.button}`
+                      : "btn-brand relative mt-6 w-full disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-slate-950 disabled:active:scale-100"
+                  }
                 >
                   {!currentUser
                     ? "ورود و ثبت سفارش"
@@ -254,16 +258,16 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
         </div>
 
         {filteredPlans.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-dashed border-stroke bg-inset px-4 py-10 text-center text-sm text-faint">
             برای این بازه زمانی هنوز پلنی ثبت نشده است.
           </div>
         ) : null}
       </section>
 
-      <aside className="h-fit rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
+      <aside className="card-surface h-fit p-6">
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold text-slate-950">روند خرید</h2>
-          <p className="text-sm leading-6 text-slate-600">
+          <h2 className="text-xl font-semibold text-ink">روند خرید</h2>
+          <p className="text-sm leading-6 text-prose">
             کل فرایند شفاف و قابل پیگیری است؛ از ثبت سفارش تا تحویل نهایی کانفیگ.
           </p>
         </div>
@@ -275,11 +279,11 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
           <StepItem index="۴" title="تحویل کانفیگ" description="بعد از تایید، کانفیگ نمایش داده می‌شود." />
         </div>
 
-        <div className="mt-6 rounded-2xl bg-slate-50 p-4">
-          <div className="text-sm font-medium text-slate-950">
+        <div className="mt-6 rounded-2xl bg-inset p-4">
+          <div className="text-sm font-medium text-ink">
             {currentUser ? `${currentUser.name}، آماده ثبت سفارش هستی.` : "برای شروع فقط یک حساب بساز."}
           </div>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <p className="mt-2 text-sm leading-6 text-prose">
             {currentUser
               ? "بعد از انتخاب پلن، مستقیم به صفحه پرداخت و ثبت رسید هدایت می‌شوی."
               : "بعد از ورود یا ثبت‌نام، می‌توانی سفارش بسازی و همه مراحل را از داخل پنل خودت پیگیری کنی."}
@@ -288,20 +292,17 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
 
         {createdOrder ? (
           <div className="mt-6 space-y-4">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200">
               <div className="font-semibold">سفارش با موفقیت ساخته شد</div>
               <div className="mt-1">{createdOrder.planName}</div>
-              <div className="mt-1 text-xs text-emerald-700">کد سفارش: {createdOrder.orderId}</div>
+              <div className="mt-1 text-xs text-emerald-700 dark:text-emerald-200">کد سفارش: {createdOrder.orderId}</div>
             </div>
-            <Link
-              href={`/dashboard/orders/${createdOrder.orderId}`}
-              className="inline-flex w-full items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
+            <Link href={`/dashboard/orders/${createdOrder.orderId}`} className="btn-brand w-full">
               ادامه پرداخت و ثبت رسید
             </Link>
           </div>
         ) : (
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+          <div className="mt-6 rounded-2xl border border-dashed border-stroke bg-inset px-4 py-10 text-center text-sm text-faint">
             {currentUser
               ? "برای شروع، یکی از پلن‌ها را انتخاب و سفارش خود را ثبت کنید."
               : "برای ثبت سفارش و ثبت رسید، ابتدا وارد حساب خود شوید یا ثبت‌نام کنید."}
@@ -322,13 +323,13 @@ function StepItem({
   description: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4">
+    <div className="flex items-start gap-3 rounded-2xl bg-inset p-4">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
         {index}
       </div>
       <div>
-        <div className="font-medium text-slate-950">{title}</div>
-        <div className="mt-1 text-sm leading-6 text-slate-600">{description}</div>
+        <div className="font-medium text-ink">{title}</div>
+        <div className="mt-1 text-sm leading-6 text-prose">{description}</div>
       </div>
     </div>
   );
@@ -369,32 +370,32 @@ function getPlanCardTone({
 }) {
   if (remainingCount === 0) {
     return {
-      card: "border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] hover:border-slate-300",
-      glow: "bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.12),transparent_28%)]",
-      durationBadge: "bg-white text-slate-700 border border-slate-200",
-      stockBadge: "bg-slate-100 text-slate-600",
-      note: "bg-slate-100/80 text-slate-700",
-      button: "bg-slate-400 hover:bg-slate-400",
+      card: "border-stroke bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] hover:border-stroke dark:border-stroke dark:bg-[linear-gradient(180deg,rgba(30,41,59,0.9),rgba(15,23,42,0.95))] dark:hover:border-faint/40",
+      glow: "bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.12),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.08),transparent_28%)]",
+      durationBadge: "border border-stroke bg-panel text-prose dark:border-stroke dark:bg-elevated",
+      stockBadge: "bg-elevated text-prose dark:bg-slate-800 dark:text-faint",
+      note: "bg-elevated/80 text-prose dark:bg-slate-800/80 dark:text-faint",
+      button: "bg-slate-300 text-prose shadow-none hover:bg-slate-300 dark:bg-slate-700 dark:text-faint dark:hover:bg-slate-700",
     };
   }
 
   if (isPopular) {
     return {
-      card: "border-violet-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,243,255,0.94))] hover:border-violet-300",
-      glow: "bg-[radial-gradient(circle_at_top_right,rgba(167,139,250,0.16),transparent_28%),radial-gradient(circle_at_left,rgba(129,140,248,0.10),transparent_24%)]",
-      durationBadge: "bg-slate-950 text-white",
-      stockBadge: "bg-violet-50 text-violet-700",
-      note: "bg-violet-50/70 text-violet-900",
-      button: "bg-[linear-gradient(90deg,rgba(15,23,42,1),rgba(109,40,217,0.95))] hover:opacity-95",
+      card: "border-violet-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,243,255,0.94))] hover:border-violet-300 dark:border-violet-700/70 dark:bg-[linear-gradient(180deg,rgba(49,46,129,0.45),rgba(15,23,42,0.96))] dark:hover:border-violet-500/80",
+      glow: "bg-[radial-gradient(circle_at_top_right,rgba(167,139,250,0.16),transparent_28%),radial-gradient(circle_at_left,rgba(129,140,248,0.10),transparent_24%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(139,92,246,0.2),transparent_30%)]",
+      durationBadge: "bg-slate-950 text-white dark:bg-slate-100 dark:text-slate-950",
+      stockBadge: "bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-200",
+      note: "bg-violet-50/70 text-violet-900 dark:bg-violet-950/40 dark:text-violet-100",
+      button: "bg-slate-950 shadow-md shadow-slate-900/25 hover:bg-slate-900 dark:bg-slate-100 dark:text-slate-950 dark:shadow-black/30 dark:hover:bg-white",
     };
   }
 
   return {
-    card: "border-sky-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,249,255,0.94))] hover:border-sky-300",
-    glow: "bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.15),transparent_28%),radial-gradient(circle_at_left,rgba(14,165,233,0.08),transparent_24%)]",
-    durationBadge: "bg-slate-950 text-white",
-    stockBadge: "bg-sky-50 text-sky-700",
-    note: "bg-sky-50/70 text-sky-900",
-    button: "bg-[linear-gradient(90deg,rgba(15,23,42,1),rgba(3,105,161,0.95))] hover:opacity-95",
+    card: "border-sky-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,249,255,0.94))] hover:border-sky-300 dark:border-sky-800/70 dark:bg-[linear-gradient(180deg,rgba(12,74,110,0.35),rgba(15,23,42,0.96))] dark:hover:border-sky-600/80",
+    glow: "bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.15),transparent_28%),radial-gradient(circle_at_left,rgba(14,165,233,0.08),transparent_24%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_28%)]",
+    durationBadge: "bg-slate-950 text-white dark:bg-slate-100 dark:text-slate-950",
+    stockBadge: "bg-sky-50 text-sky-700 dark:bg-sky-950/55 dark:text-sky-200",
+    note: "bg-sky-50/70 text-sky-900 dark:bg-sky-950/35 dark:text-sky-100",
+    button: "bg-slate-950 shadow-md shadow-slate-900/25 hover:bg-slate-900 dark:bg-slate-100 dark:text-slate-950 dark:shadow-black/30 dark:hover:bg-white",
   };
 }

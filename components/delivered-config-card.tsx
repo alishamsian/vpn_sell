@@ -48,14 +48,14 @@ export function DeliveredConfigCard({ config }: DeliveredConfigCardProps) {
 
   return (
     <div className="space-y-3">
-      <div className="text-xs font-medium text-emerald-900">کانفیگ تحویل‌شده</div>
+      <div className="text-xs font-medium text-emerald-900 dark:text-emerald-100">کانفیگ تحویل‌شده</div>
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_112px] lg:items-start">
-        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-emerald-100 bg-white/90 p-2.5 text-[11px] leading-5 text-slate-700">
+        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-emerald-100 bg-panel/90 p-2.5 text-[11px] leading-5 text-prose dark:border-emerald-800/50">
           {truncateConfig(config, 150)}
         </pre>
 
-        <div className="flex flex-col items-center rounded-lg border border-emerald-100 bg-white/90 p-2.5">
+        <div className="flex flex-col items-center rounded-lg border border-emerald-100 bg-panel/90 p-2.5 dark:border-emerald-800/50">
           {qrCodeUrl ? (
             <Image
               src={qrCodeUrl}
@@ -66,12 +66,12 @@ export function DeliveredConfigCard({ config }: DeliveredConfigCardProps) {
               className="rounded-md"
             />
           ) : (
-            <div className="flex h-[88px] w-[88px] items-center justify-center rounded-md bg-slate-100 text-center text-[10px] text-slate-500">
+            <div className="flex h-[88px] w-[88px] items-center justify-center rounded-md bg-elevated text-center text-[10px] text-faint">
               QR آماده نشد
             </div>
           )}
 
-          <div className="mt-1.5 text-center text-[10px] text-slate-500">اسکن سریع</div>
+          <div className="mt-1.5 text-center text-[10px] text-faint">اسکن سریع</div>
         </div>
       </div>
 

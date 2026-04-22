@@ -33,7 +33,7 @@ export function AppLoadingScreen({ message = DEFAULT_PAGE_MESSAGE, variant = "pa
           <span className="font-mono lowercase">vpn_alish</span>
         </div>
 
-        <p className="text-center text-[13px] font-medium leading-relaxed text-slate-600">{message}</p>
+        <p className="text-center text-[13px] font-medium leading-relaxed text-prose">{message}</p>
 
         <AppLoadingDots />
       </div>
@@ -47,12 +47,12 @@ export function AppLoadingScreen({ message = DEFAULT_PAGE_MESSAGE, variant = "pa
 export function AppLoadingInline({ message = DEFAULT_INLINE_MESSAGE }: { message?: string }) {
   return (
     <div
-      className="flex flex-col items-center justify-center gap-4 rounded-xl border border-slate-200/90 bg-white px-5 py-7 shadow-sm"
+      className="flex flex-col items-center justify-center gap-4 rounded-xl border border-stroke/90 bg-panel px-5 py-7 shadow-sm"
       role="status"
       aria-live="polite"
     >
       <VpnConnectionVisual size="sm" />
-      <p className="text-center text-xs font-medium text-slate-600">{message}</p>
+      <p className="text-center text-xs font-medium text-prose">{message}</p>
       <AppLoadingDots />
     </div>
   );
@@ -60,9 +60,11 @@ export function AppLoadingInline({ message = DEFAULT_INLINE_MESSAGE }: { message
 
 /** دستگاه → تونل (بستهٔ داده) → شبکه */
 function VpnConnectionVisual({ size }: { size: "sm" | "md" }) {
-  const iconClass = size === "sm" ? "h-5 w-5 text-slate-500" : "h-7 w-7 text-slate-500";
+  const iconClass = size === "sm" ? "h-5 w-5 text-faint" : "h-7 w-7 text-faint";
   const tunnelClass =
-    size === "sm" ? "relative h-1.5 w-[5.5rem] overflow-hidden rounded-full bg-slate-200" : "relative h-2 w-[6.75rem] overflow-hidden rounded-full bg-slate-200 sm:w-36";
+    size === "sm"
+      ? "relative h-1.5 w-[5.5rem] overflow-hidden rounded-full bg-elevated"
+      : "relative h-2 w-[6.75rem] overflow-hidden rounded-full bg-elevated sm:w-36";
 
   return (
     <div
@@ -88,7 +90,7 @@ export function AppLoadingDots({ className = "" }: { className?: string }) {
       {heights.map((px, i) => (
         <span
           key={i}
-          className="app-loading-signal w-[3px] rounded-sm bg-slate-500"
+          className="app-loading-signal w-[3px] rounded-sm bg-faint"
           style={{ height: `${px}px`, animationDelay: `${i * 0.1}s` }}
         />
       ))}

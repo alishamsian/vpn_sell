@@ -17,16 +17,16 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.14),transparent_30%),radial-gradient(circle_at_left,rgba(56,189,248,0.08),transparent_24%),linear-gradient(135deg,rgba(239,246,255,0.6),transparent_45%)]" />
         <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_320px] lg:items-center">
           <div className="hero-stagger space-y-5">
-            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-500/35 bg-gradient-to-l from-cyan-500/12 to-amber-500/10 px-4 py-1.5 text-xs font-semibold text-cyan-950">
-              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-cyan-700" aria-hidden />
+            <span className="pill-brand">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-brand-cyan" aria-hidden />
               VPN Alish — خرید مطمئن، ثبت سفارش شفاف، تحویل بعد از تایید
             </span>
 
             <div className="space-y-4">
-              <h1 className="max-w-3xl text-[1.65rem] font-semibold leading-[1.35] tracking-tight text-slate-950 sm:text-4xl sm:leading-tight lg:text-5xl">
+              <h1 className="max-w-3xl text-[1.65rem] font-semibold leading-[1.35] tracking-tight text-ink sm:text-4xl sm:leading-tight lg:text-5xl">
                 پلن مناسب خودت را انتخاب کن، رسید را ثبت کن و کانفیگ را امن تحویل بگیر.
               </h1>
-              <p className="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base sm:leading-8 lg:text-lg">
+              <p className="max-w-2xl text-sm leading-7 text-prose sm:text-base sm:leading-8 lg:text-lg">
                 موجودی واقعی نمایش داده می‌شود، سفارش با کد اختصاصی ثبت می‌شود و بعد از تایید
                 پرداخت، کانفیگ فقط برای همان سفارش داخل پنل کاربری تحویل داده می‌شود.
               </p>
@@ -36,10 +36,7 @@ export default async function HomePage() {
               <Link href="#plans" className="btn-brand min-w-[10.5rem]">
                 مشاهده پلن‌ها
               </Link>
-              <Link
-                href={session ? "/dashboard" : "/register"}
-                className="inline-flex min-h-[2.75rem] min-w-[10.5rem] items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950 active:scale-[0.98] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/30 focus-visible:ring-offset-2"
-              >
+              <Link href={session ? "/dashboard" : "/register"} className="btn-outline">
                 {session ? "پیگیری سفارش‌ها" : "شروع خرید"}
               </Link>
             </div>
@@ -90,8 +87,8 @@ export default async function HomePage() {
 
       <section className="card-surface motion-safe:animate-fade-in p-6 sm:p-8">
         <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">سوالات پرتکرار</h2>
-          <p className="mt-2 text-sm leading-7 text-slate-600">
+          <h2 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">سوالات پرتکرار</h2>
+          <p className="mt-2 text-sm leading-7 text-prose">
             این بخش قبل از خرید، روند سفارش و تحویل را شفاف می‌کند تا نیاز به سوال تکراری کمتر
             شود.
           </p>
@@ -100,8 +97,8 @@ export default async function HomePage() {
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {faqItems.map((item) => (
             <div key={item.question} className="card-surface rounded-3xl p-5">
-              <h3 className="text-base font-semibold text-slate-950">{item.question}</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-600">{item.answer}</p>
+              <h3 className="text-base font-semibold text-ink">{item.question}</h3>
+              <p className="mt-3 text-sm leading-7 text-prose">{item.answer}</p>
             </div>
           ))}
         </div>
@@ -112,12 +109,12 @@ export default async function HomePage() {
 
 function FeatureCard({ title, description }: { title: string; description: string }) {
   return (
-    <div className="card-surface relative overflow-hidden p-6 transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+    <div className="card-surface relative overflow-hidden p-6 transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:hover:border-sky-600/50">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_26%)]" />
       <div className="relative">
       <div className="mb-4 h-1.5 w-12 rounded-full bg-[linear-gradient(90deg,rgba(14,165,233,0.95),rgba(56,189,248,0.65))]" />
-      <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
-      <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p>
+      <h2 className="text-lg font-semibold text-ink">{title}</h2>
+      <p className="mt-3 text-sm leading-7 text-prose">{description}</p>
       </div>
     </div>
   );
@@ -125,15 +122,15 @@ function FeatureCard({ title, description }: { title: string; description: strin
 
 function TrustBadge({ icon: Icon, label, value }: { icon: LucideIcon; value: string; label: string }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))] px-4 py-4 transition hover:border-sky-200 hover:bg-white motion-reduce:transition-none">
+    <div className="relative overflow-hidden rounded-2xl border border-stroke bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))] px-4 py-4 transition hover:border-sky-200 hover:bg-panel motion-reduce:transition-none dark:bg-[linear-gradient(180deg,rgba(30,41,59,0.9),rgba(15,23,42,0.95))] dark:hover:border-sky-600/50 dark:hover:bg-elevated/50">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_30%)]" />
       <div className="relative flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/90 text-cyan-700 shadow-sm ring-1 ring-slate-200/80">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-panel/90 text-cyan-700 shadow-sm ring-1 ring-stroke/80 dark:text-cyan-300">
           <Icon className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-2xl font-semibold tabular-nums tracking-tight text-slate-950">{value}</div>
-          <div className="mt-1 text-xs text-slate-500">{label}</div>
+          <div className="text-2xl font-semibold tabular-nums tracking-tight text-ink">{value}</div>
+          <div className="mt-1 text-xs text-faint">{label}</div>
         </div>
       </div>
     </div>
@@ -142,7 +139,7 @@ function TrustBadge({ icon: Icon, label, value }: { icon: LucideIcon; value: str
 
 function SimpleStep({ title, children }: { title: string; children: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.05))] p-4 transition hover:border-white/20 hover:bg-white/[0.08] motion-reduce:transition-none">
+    <div className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.05))] p-4 transition hover:border-white/20 hover:bg-panel/[0.08] motion-reduce:transition-none">
       <div className="font-medium text-white">{title}</div>
       <p className="mt-1 text-sm leading-7 text-slate-300">{children}</p>
     </div>

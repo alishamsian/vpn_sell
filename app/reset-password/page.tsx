@@ -26,9 +26,9 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
 
   if (!validation.valid) {
     return (
-      <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-soft">
-        <h1 className="text-3xl font-semibold text-slate-950">لینک بازیابی معتبر نیست</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
+      <div className="mx-auto max-w-md rounded-3xl border border-stroke bg-panel p-8 shadow-soft">
+        <h1 className="text-3xl font-semibold text-ink">لینک بازیابی معتبر نیست</h1>
+        <p className="mt-3 text-sm leading-6 text-prose">
           {validation.reason === "expired"
             ? "این لینک منقضی شده است. یک درخواست جدید ثبت کنید."
             : validation.reason === "used"
@@ -37,7 +37,7 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
         </p>
         <Link
           href="/forgot-password"
-          className="mt-6 inline-flex rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+          className="btn-brand mt-6 inline-flex"
         >
           درخواست لینک جدید
         </Link>

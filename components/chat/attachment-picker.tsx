@@ -15,7 +15,7 @@ export function AttachmentPicker({
     <div className="flex flex-wrap items-center gap-3">
       <label
         htmlFor={inputId}
-        className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+        className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-stroke bg-panel px-3 py-2 text-xs font-medium text-prose transition hover:border-faint/60 hover:bg-inset"
       >
         افزودن فایل یا عکس
       </label>
@@ -27,7 +27,7 @@ export function AttachmentPicker({
         onChange={(event) => onChange(event.target.files?.[0]?.name ?? "")}
         className="hidden"
       />
-      <div className="text-xs text-slate-500">
+      <div className="text-xs text-faint">
         {selectedFileName ? `فایل انتخاب‌شده: ${selectedFileName}` : "PNG, JPG, WEBP, PDF, TXT"}
       </div>
     </div>

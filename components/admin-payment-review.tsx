@@ -41,7 +41,7 @@ export function AdminPaymentReview({ paymentId, status }: AdminPaymentReviewProp
         name="reviewNote"
         rows={3}
         placeholder="یادداشت برای کاربر یا توضیح ادمین"
-        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+        className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 text-sm outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
       />
       <div className="flex flex-wrap gap-3">
         <button

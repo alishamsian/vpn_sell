@@ -56,11 +56,11 @@ export default async function DashboardChatPage({ searchParams }: DashboardChatP
 
   return (
     <div className="space-y-4 sm:space-y-8">
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft sm:rounded-3xl sm:p-6 lg:p-8">
+      <section className="rounded-2xl border border-stroke bg-panel p-4 shadow-soft sm:rounded-3xl sm:p-6 lg:p-8">
         <div className="max-w-3xl space-y-2 sm:space-y-3">
-          <div className="text-xs font-medium text-slate-500 sm:text-sm">پشتیبانی</div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl lg:text-3xl">چت</h1>
-          <p className="hidden text-sm leading-7 text-slate-600 sm:block">
+          <div className="text-xs font-medium text-faint sm:text-sm">پشتیبانی</div>
+          <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl lg:text-3xl">چت</h1>
+          <p className="hidden text-sm leading-7 text-prose sm:block">
             گفتگوی عمومی و مکالمه‌های مرتبط با هر سفارش در یک‌جا.
           </p>
         </div>

@@ -522,6 +522,47 @@ export async function getAdminChatConversations() {
   return conversations.map((conversation) => mapConversationSummary(conversation, "ADMIN"));
 }
 
+export async function getAdminChatConversationsForUser(userId: string) {
+  const conversations = await prisma.conversation.findMany({
+    where: {
+      userId,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+      order: {
+        select: {
+          id: true,
+          status: true,
+          plan: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          messages: true,
+        },
+      },
+    },
+    orderBy: [
+      { unreadByAdmin: "desc" },
+      { lastMessageAt: "desc" },
+      { updatedAt: "desc" },
+    ],
+  });
+
+  return conversations.map((conversation) => mapConversationSummary(conversation, "ADMIN"));
+}
+
 export async function getUserConversationDetails(conversationId: string, userId: string) {
   const conversation = await prisma.conversation.findFirst({
     where: {

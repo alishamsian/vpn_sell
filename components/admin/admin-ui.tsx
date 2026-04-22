@@ -13,12 +13,12 @@ export function AdminPageHeader({
   action?: ReactNode;
 }) {
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-5 shadow-soft">
+    <section className="card-surface px-6 py-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-2">
-          {eyebrow ? <div className="text-sm font-medium text-slate-500">{eyebrow}</div> : null}
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">{title}</h1>
-          {description ? <p className="max-w-3xl text-sm leading-7 text-slate-600">{description}</p> : null}
+          {eyebrow ? <div className="text-sm font-medium text-faint">{eyebrow}</div> : null}
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
+          {description ? <p className="max-w-3xl text-sm leading-7 text-prose">{description}</p> : null}
         </div>
         {action ? <div>{action}</div> : null}
       </div>
@@ -39,18 +39,18 @@ export function AdminMetricCard({
 }) {
   const toneClass =
     tone === "success"
-      ? "border-emerald-200 bg-emerald-50"
+      ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800/60 dark:bg-emerald-950/45"
       : tone === "warning"
-        ? "border-amber-200 bg-amber-50"
+        ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40"
         : tone === "danger"
-          ? "border-rose-200 bg-rose-50"
-          : "border-slate-200 bg-white";
+          ? "border-rose-200 bg-rose-50 dark:border-rose-800/60 dark:bg-rose-950/40"
+          : "border-stroke bg-panel";
 
   return (
-    <div className={`rounded-3xl border p-5 shadow-soft ${toneClass}`}>
-      <div className="text-sm text-slate-500">{label}</div>
-      <div className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">{value}</div>
-      {hint ? <div className="mt-2 text-xs text-slate-500">{hint}</div> : null}
+    <div className={`rounded-card border p-5 shadow-soft ${toneClass}`}>
+      <div className="text-sm text-faint">{label}</div>
+      <div className="mt-3 text-2xl font-semibold tracking-tight text-ink">{value}</div>
+      {hint ? <div className="mt-2 text-xs text-faint">{hint}</div> : null}
     </div>
   );
 }
@@ -67,11 +67,11 @@ export function AdminSectionCard({
   action?: ReactNode;
 }) {
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-soft">
+    <section className="card-surface p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
-          {description ? <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p> : null}
+          <h2 className="text-xl font-semibold text-ink">{title}</h2>
+          {description ? <p className="mt-1 text-sm leading-6 text-prose">{description}</p> : null}
         </div>
         {action ? <div>{action}</div> : null}
       </div>
@@ -93,17 +93,17 @@ export function AdminQuickLink({
   return (
     <Link
       href={href}
-      className="rounded-3xl border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-5 transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-soft"
+      className="card-surface block p-5 transition hover:-translate-y-0.5 hover:border-sky-300/80 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:hover:border-sky-600/50"
     >
-      <div className="text-base font-semibold text-slate-950">{title}</div>
-      <div className="mt-2 text-sm leading-7 text-slate-600">{description}</div>
+      <div className="text-base font-semibold text-ink">{title}</div>
+      <div className="mt-2 text-sm leading-7 text-prose">{description}</div>
     </Link>
   );
 }
 
 export function AdminTableEmptyState({ label }: { label: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+    <div className="rounded-2xl border border-dashed border-stroke bg-inset px-4 py-10 text-center text-sm text-faint">
       {label}
     </div>
   );
@@ -111,7 +111,7 @@ export function AdminTableEmptyState({ label }: { label: string }) {
 
 export function AdminPill({ label }: { label: string }) {
   return (
-    <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
+    <span className="rounded-full border border-stroke px-3 py-1 text-xs font-medium text-prose">
       {label}
     </span>
   );

@@ -149,10 +149,10 @@ export function OrderSupportChatCard({
 
   if (compact) {
     return (
-      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft">
+      <div className="overflow-hidden rounded-card border border-stroke bg-panel shadow-soft">
         <div className="relative">
           {!isEnabled && unlockAt ? (
-            <div className="absolute left-3 top-3 z-10 rounded-full border border-slate-200 bg-white/95 px-3 py-1 text-[11px] font-medium text-slate-700 shadow-sm">
+            <div className="absolute left-3 top-3 z-10 rounded-full border border-stroke bg-panel/95 px-3 py-1 text-[11px] font-medium text-prose shadow-sm">
               باز شدن گفت‌وگو تا {formatRemainingTime(remainingMs)}
             </div>
           ) : null}
@@ -174,10 +174,10 @@ export function OrderSupportChatCard({
           </div>
 
           {!isEnabled ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/70 p-4 backdrop-blur-[2px]">
-              <div className="max-w-[15rem] rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 text-center shadow-sm">
-                <div className="text-sm font-semibold text-slate-950">گفت‌وگو هنوز فعال نیست</div>
-                <div className="mt-1 text-xs leading-6 text-slate-500">
+            <div className="absolute inset-0 flex items-center justify-center bg-panel/70 p-4 backdrop-blur-[2px]">
+              <div className="max-w-[15rem] rounded-2xl border border-stroke bg-panel/95 px-4 py-3 text-center shadow-sm">
+                <div className="text-sm font-semibold text-ink">گفت‌وگو هنوز فعال نیست</div>
+                <div className="mt-1 text-xs leading-6 text-faint">
                   اگر تا پایان این زمان کانفیگ تحویل نشود، این بخش برای پیگیری سفارش باز می‌شود.
                 </div>
               </div>
@@ -185,7 +185,7 @@ export function OrderSupportChatCard({
           ) : null}
         </div>
 
-        <div className="border-t border-slate-200 bg-white p-3.5">
+        <div className="border-t border-stroke bg-panel p-3.5">
           <MessageComposer
             action={sendAction}
             conversationId={conversation?.id}
@@ -222,7 +222,7 @@ export function OrderSupportChatCard({
         variant="default"
       />
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
+      <div className="rounded-3xl border border-stroke bg-panel p-5 shadow-soft">
         <MessageComposer
           action={sendAction}
           conversationId={conversation?.id}

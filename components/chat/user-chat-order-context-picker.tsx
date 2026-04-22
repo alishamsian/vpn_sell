@@ -45,7 +45,9 @@ export function UserChatOrderContextPicker({
 
   useEffect(() => {
     syncedValueRef.current = selectValue;
-    setPickerValue(selectValue);
+    window.setTimeout(() => {
+      setPickerValue(selectValue);
+    }, 0);
   }, [selectValue]);
 
   const handleChange = (orderId: string) => {
@@ -85,7 +87,7 @@ export function UserChatOrderContextPicker({
 
   return (
     <div className="mb-3 space-y-1.5">
-      <label htmlFor="chat-order-context" className="text-xs font-medium text-slate-600">
+      <label htmlFor="chat-order-context" className="text-xs font-medium text-prose">
         سفارش مرتبط با این گفتگو
       </label>
       <select
@@ -95,7 +97,7 @@ export function UserChatOrderContextPicker({
         onChange={(event) => {
           handleChange(event.target.value);
         }}
-        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl border border-stroke bg-inset px-3 py-2.5 text-sm font-medium text-ink outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <option value="">پشتیبانی عمومی</option>
         {orders.map((order) => (
@@ -104,7 +106,7 @@ export function UserChatOrderContextPicker({
           </option>
         ))}
       </select>
-      <p className="text-[11px] leading-5 text-slate-500">
+      <p className="text-[11px] leading-5 text-faint">
         با انتخاب سفارش، همان گفتگوی اختصاصی سفارش باز می‌شود و پیام‌ها در همان رشته می‌مانند.
       </p>
     </div>

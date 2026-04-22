@@ -75,6 +75,39 @@ enum MessageType {
   FILE
 }
 
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+  ADJUST
+}
+
+enum CouponKind {
+  PERCENT
+  FIXED
+}
+
+enum GiftCardStatus {
+  ACTIVE
+  DISABLED
+  EXPIRED
+}
+
+enum ReferralRewardTrigger {
+  PAYMENT_APPROVED
+}
+
+enum ReferralAttributionStatus {
+  PENDING
+  REWARDED
+  REJECTED
+}
+
+enum WalletTopUpStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id            String         @id @default(cuid())
   name          String
@@ -89,6 +122,16 @@ model User {
   conversations Conversation[] @relation("UserConversations")
   messages      Message[]      @relation("UserMessages")
   passwordResetTokens PasswordResetToken[]
+  wallet        Wallet?
+  createdCoupons      Coupon[]            @relation("CouponCreatedByAdmin")
+  createdGiftCards    GiftCard[]          @relation("GiftCardCreatedByAdmin")
+  createdReferralCampaigns ReferralCampaign[] @relation("ReferralCampaignCreatedByAdmin")
+  couponRedemptions   CouponRedemption[]
+  giftCardRedemptions GiftCardRedemption[]
+  ownedReferralCodes  ReferralCode[]
+  referralAttributions ReferralAttribution[]
+  walletTopUps WalletTopUp[] @relation("WalletTopUpUser")
+  reviewedWalletTopUps WalletTopUp[] @relation("WalletTopUpReviewedByAdmin")
 
   @@index([role, createdAt])
 }
@@ -102,6 +145,7 @@ model Plan {
   createdAt    DateTime  @default(now())
   accounts     Account[]
   orders       Order[]
+  couponAllowedPlans CouponAllowedPlan[]
 
   @@index([createdAt])
 }
@@ -123,21 +167,34 @@ model Order {
   userId        String
   planId        String
   accountId     String?        @unique
+  subtotalAmount       Decimal        @db.Decimal(12, 0)
+  discountAmount       Decimal        @db.Decimal(12, 0) @default(0)
+  walletAppliedAmount  Decimal        @db.Decimal(12, 0) @default(0)
+  giftCardAppliedAmount Decimal       @db.Decimal(12, 0) @default(0)
   amount        Decimal        @db.Decimal(12, 0)
   status        OrderStatus    @default(PENDING_PAYMENT)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   fulfilledAt   DateTime?
   expiresAt     DateTime?
+  couponId      String?
+  giftCardId    String?
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan          Plan           @relation(fields: [planId], references: [id], onDelete: Restrict)
   account       Account?       @relation(fields: [accountId], references: [id], onDelete: Restrict)
   payment       Payment?
   notifications Notification[]
   conversation  Conversation?
+  coupon        Coupon?        @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  giftCard      GiftCard?      @relation(fields: [giftCardId], references: [id], onDelete: SetNull)
+  couponRedemption   CouponRedemption?
+  giftCardRedemptions GiftCardRedemption[]
+  referralAttributionFirstOrder ReferralAttribution? @relation("ReferralAttributionFirstOrder")
 
   @@index([userId, createdAt])
   @@index([planId, status, createdAt])
+  @@index([couponId, createdAt])
+  @@index([giftCardId, createdAt])
 }
 
 model Payment {
@@ -250,4 +307,193 @@ model PasswordResetToken {
 
   @@index([userId, createdAt])
   @@index([expiresAt])
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Decimal  @db.Decimal(12, 0) @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@index([createdAt])
+}
+
+model WalletTransaction {
+  id        String                @id @default(cuid())
+  walletId  String
+  type      WalletTransactionType
+  amount    Decimal               @db.Decimal(12, 0)
+  reason    String
+  refType   String?
+  refId     String?
+  createdAt DateTime              @default(now())
+  wallet    Wallet                @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt])
+  @@index([type, createdAt])
+  @@index([refType, refId])
+}
+
+model WalletTopUp {
+  id                 String           @id @default(cuid())
+  userId             String
+  amount             Decimal          @db.Decimal(12, 0)
+  trackingCode       String
+  cardLast4          String
+  receiptUrl         String
+  receiptStoragePath String?
+  status             WalletTopUpStatus @default(PENDING)
+  reviewNote         String?
+  reviewedAt         DateTime?
+  reviewedByAdminId  String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  user               User             @relation("WalletTopUpUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedByAdmin    User?            @relation("WalletTopUpReviewedByAdmin", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model Coupon {
+  id                 String     @id @default(cuid())
+  code               String     @unique
+  kind               CouponKind
+  value              Decimal    @db.Decimal(12, 0)
+  maxDiscountAmount  Decimal?   @db.Decimal(12, 0)
+  minOrderAmount     Decimal?   @db.Decimal(12, 0)
+  startsAt           DateTime?
+  endsAt             DateTime?
+  usageLimitTotal    Int?
+  usageLimitPerUser  Int?
+  isActive           Boolean    @default(true)
+  createdByAdminId   String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  createdByAdmin     User?      @relation("CouponCreatedByAdmin", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  redemptions        CouponRedemption[]
+  allowedPlans       CouponAllowedPlan[]
+  orders             Order[]
+
+  @@index([isActive, createdAt])
+  @@index([startsAt, endsAt])
+}
+
+model CouponAllowedPlan {
+  id       String @id @default(cuid())
+  couponId String
+  planId   String
+  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  plan     Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, planId])
+  @@index([planId])
+}
+
+model CouponRedemption {
+  id              String   @id @default(cuid())
+  couponId        String
+  userId          String
+  orderId         String   @unique
+  amountDiscounted Decimal @db.Decimal(12, 0)
+  createdAt       DateTime @default(now())
+  coupon          Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([couponId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model GiftCard {
+  id               String         @id @default(cuid())
+  code             String         @unique
+  initialAmount    Decimal        @db.Decimal(12, 0)
+  balance          Decimal        @db.Decimal(12, 0)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  status           GiftCardStatus @default(ACTIVE)
+  createdByAdminId String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  createdByAdmin   User?          @relation("GiftCardCreatedByAdmin", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  redemptions      GiftCardRedemption[]
+  orders           Order[]
+
+  @@index([status, createdAt])
+  @@index([startsAt, endsAt])
+}
+
+model GiftCardRedemption {
+  id          String   @id @default(cuid())
+  giftCardId  String
+  userId      String
+  orderId     String
+  amountUsed  Decimal  @db.Decimal(12, 0)
+  createdAt   DateTime @default(now())
+  giftCard    GiftCard @relation(fields: [giftCardId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([giftCardId, orderId])
+  @@index([giftCardId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model ReferralCampaign {
+  id               String               @id @default(cuid())
+  name             String
+  description      String?
+  startsAt         DateTime?
+  endsAt           DateTime?
+  isActive         Boolean              @default(true)
+  rewardValue      Decimal              @db.Decimal(12, 0)
+  rewardTrigger    ReferralRewardTrigger @default(PAYMENT_APPROVED)
+  maxRewardsTotal  Int?
+  maxRewardsPerReferrer Int?
+  createdByAdminId String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  createdByAdmin   User?                @relation("ReferralCampaignCreatedByAdmin", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  codes            ReferralCode[]
+
+  @@index([isActive, createdAt])
+  @@index([startsAt, endsAt])
+}
+
+model ReferralCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  campaignId  String
+  ownerUserId String?
+  note        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  campaign    ReferralCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ownerUser   User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  attributions ReferralAttribution[]
+
+  @@index([campaignId, createdAt])
+  @@index([ownerUserId])
+  @@index([isActive, createdAt])
+}
+
+model ReferralAttribution {
+  id             String                    @id @default(cuid())
+  referralCodeId String
+  referredUserId String
+  firstOrderId   String?                   @unique
+  status         ReferralAttributionStatus @default(PENDING)
+  createdAt      DateTime                  @default(now())
+  rewardedAt     DateTime?
+  referralCode   ReferralCode              @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  referredUser   User                      @relation(fields: [referredUserId], references: [id], onDelete: Cascade)
+  firstOrder     Order?                    @relation("ReferralAttributionFirstOrder", fields: [firstOrderId], references: [id], onDelete: SetNull)
+
+  @@unique([referralCodeId, referredUserId])
+  @@index([referredUserId, createdAt])
+  @@index([status, createdAt])
 }

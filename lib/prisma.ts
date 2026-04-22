@@ -44,7 +44,26 @@ function createPrismaClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+const cached = globalForPrisma.prisma;
+// در dev ممکن است بعد از prisma generate، instance قبلی هنوز در global cache بماند
+// و مدل‌های جدید (delegateها) را نداشته باشد. در این حالت، یک بار بازسازی می‌کنیم.
+const requiredDelegates = [
+  "wallet",
+  "walletTransaction",
+  "coupon",
+  "couponRedemption",
+  "giftCard",
+  "giftCardRedemption",
+  "referralCampaign",
+  "referralCode",
+  "referralAttribution",
+] as const;
+
+const needsRefresh =
+  Boolean(cached) &&
+  requiredDelegates.some((delegate) => !(delegate in (cached as unknown as Record<string, unknown>)));
+
+export const prisma = needsRefresh ? createPrismaClient() : cached ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

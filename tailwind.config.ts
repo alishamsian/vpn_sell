@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,9 +9,20 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Vazirmatn Variable"', '"Vazirmatn"', "system-ui", "sans-serif"],
+      },
       colors: {
+        /** تم روشن/تاریک از طریق متغیرهای CSS در globals.css */
+        canvas: "rgb(var(--tw-canvas) / <alpha-value>)",
+        panel: "rgb(var(--tw-panel) / <alpha-value>)",
+        inset: "rgb(var(--tw-inset) / <alpha-value>)",
+        elevated: "rgb(var(--tw-elevated) / <alpha-value>)",
+        stroke: "rgb(var(--tw-stroke) / <alpha-value>)",
+        ink: "rgb(var(--tw-ink) / <alpha-value>)",
+        prose: "rgb(var(--tw-prose) / <alpha-value>)",
+        faint: "rgb(var(--tw-faint) / <alpha-value>)",
         surface: "#0f172a",
-        border: "#1e293b",
         brand: {
           cyan: "#00a8ff",
           amber: "#e89420",
@@ -38,6 +50,10 @@ const config: Config = {
       boxShadow: {
         soft: "0 12px 32px rgba(15, 23, 42, 0.08)",
         brand: "0 10px 28px rgba(0, 88, 132, 0.18)",
+      },
+      ringOffsetColor: {
+        canvas: "rgb(var(--tw-canvas) / <alpha-value>)",
+        panel: "rgb(var(--tw-panel) / <alpha-value>)",
       },
     },
   },

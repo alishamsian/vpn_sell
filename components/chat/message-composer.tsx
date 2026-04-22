@@ -32,13 +32,13 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
     <button
       type="submit"
       disabled={pending || disabled}
-      className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+      className="btn-brand disabled:cursor-not-allowed disabled:opacity-55 disabled:active:scale-100 disabled:hover:bg-slate-950 dark:disabled:hover:bg-slate-100"
     >
       <AppLoadingButtonLabel
         pending={pending}
         idleLabel="ارسال پیام"
         pendingLabel="در حال ارسال…"
-        spinnerClassName="h-4 w-4 text-white"
+        spinnerClassName="h-4 w-4 text-white dark:text-slate-950"
       />
     </button>
   );
@@ -103,7 +103,7 @@ export function MessageComposer({
         rows={rows}
         placeholder={placeholder}
         disabled={disabled}
-        className={`w-full border border-slate-200 bg-white text-sm outline-none transition focus:border-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 ${
+        className={`w-full border border-stroke bg-panel text-sm outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20 disabled:cursor-not-allowed disabled:bg-inset ${
           compact
             ? "rounded-2xl px-3 py-2.5 leading-6"
             : "rounded-3xl px-4 py-3 leading-7"

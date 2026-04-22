@@ -58,7 +58,7 @@ function StatusToggleForm({
       />
       <button
         type="submit"
-        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+        className="rounded-xl border border-stroke bg-panel px-3 py-2 text-xs font-medium text-prose transition hover:border-faint/60 hover:bg-inset"
       >
         {conversation.status === "OPEN" ? "بستن گفتگو" : "باز کردن دوباره"}
       </button>
@@ -128,17 +128,17 @@ export function MessageThread({
       <div
         className={
           variant === "embedded"
-            ? "flex h-full min-h-[720px] items-center justify-center bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.92))] p-8 text-center"
+            ? "flex h-full min-h-[720px] items-center justify-center bg-inset/50 p-8 text-center dark:bg-inset/30"
             : variant === "compactEmbedded"
-              ? "flex h-full min-h-[420px] items-center justify-center bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.92))] p-5 text-center"
-            : "flex min-h-[220px] flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-soft sm:min-h-[280px] lg:min-h-[360px]"
+              ? "flex h-full min-h-[420px] items-center justify-center bg-inset/50 p-5 text-center dark:bg-inset/30"
+            : "flex min-h-[220px] flex-1 items-center justify-center rounded-2xl border border-stroke bg-panel p-6 text-center shadow-soft sm:min-h-[280px] lg:min-h-[360px]"
         }
       >
         <div className="max-w-md">
-          <div className={`${isCompact ? "text-base" : "text-xl"} font-semibold text-slate-950`}>
+          <div className={`${isCompact ? "text-base" : "text-xl"} font-semibold text-ink`}>
             {emptyTitle}
           </div>
-          <div className={`mt-3 text-slate-600 ${isCompact ? "text-xs leading-6" : "text-sm leading-7"}`}>
+          <div className={`mt-3 text-prose ${isCompact ? "text-xs leading-6" : "text-sm leading-7"}`}>
             {emptyDescription}
           </div>
         </div>
@@ -150,22 +150,22 @@ export function MessageThread({
     <div
       className={
         variant === "embedded"
-          ? "flex h-full min-h-[720px] flex-col overflow-hidden bg-white"
+          ? "flex h-full min-h-[720px] flex-col overflow-hidden bg-panel"
           : variant === "compactEmbedded"
-            ? "flex h-full min-h-[420px] flex-col overflow-hidden bg-white"
-          : "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft lg:min-h-[520px]"
+            ? "flex h-full min-h-[420px] flex-col overflow-hidden bg-panel"
+          : "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-stroke bg-panel shadow-soft lg:min-h-[520px]"
       }
     >
       <div
-        className={`flex flex-wrap items-center justify-between border-b border-slate-200 bg-white/95 backdrop-blur ${
+        className={`flex flex-wrap items-center justify-between border-b border-stroke bg-panel/95 backdrop-blur ${
           isCompact ? "gap-3 p-4" : "gap-3 p-4 sm:gap-4 sm:p-5"
         }`}
       >
         <div className="min-w-0 flex-1">
-          <div className={`${isCompact ? "text-base" : "text-base sm:text-lg"} truncate font-semibold text-slate-950`}>
+          <div className={`${isCompact ? "text-base" : "text-base sm:text-lg"} truncate font-semibold text-ink`}>
             {role === "ADMIN" ? conversation.user.name : conversation.title}
           </div>
-          {!isCompact ? <div className="mt-1 truncate text-xs text-slate-500 sm:text-sm">{subtitle}</div> : null}
+          {!isCompact ? <div className="mt-1 truncate text-xs text-faint sm:text-sm">{subtitle}</div> : null}
         </div>
 
         <div className={`flex flex-wrap items-center ${isCompact ? "gap-2" : "gap-3"}`}>
@@ -174,8 +174,8 @@ export function MessageThread({
               isCompact ? "px-2.5 py-1" : "px-3 py-1"
             } ${
               conversation.status === "OPEN"
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-slate-100 text-slate-600"
+                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+                : "bg-elevated text-prose"
             }`}
           >
             {conversation.status === "OPEN" ? "باز" : "بسته"}
@@ -190,33 +190,33 @@ export function MessageThread({
         </div>
       </div>
 
-      <div className={`border-b border-slate-200 bg-white ${isCompact ? "px-4 py-3" : "px-4 py-3 sm:px-5"}`}>
+      <div className={`border-b border-stroke bg-panel ${isCompact ? "px-4 py-3" : "px-4 py-3 sm:px-5"}`}>
         <div
-          className={`rounded-xl border border-slate-200 bg-slate-50 sm:rounded-2xl ${
+          className={`rounded-xl border border-stroke bg-inset sm:rounded-2xl ${
             isCompact ? "px-3 py-2" : "px-3 py-2 sm:px-4 sm:py-3"
           }`}
         >
           {isCompact ? (
-            <div className="text-xs font-medium text-slate-700">{productContext?.value}</div>
+            <div className="text-xs font-medium text-prose">{productContext?.value}</div>
           ) : (
             <>
-              <div className="text-[11px] font-medium text-slate-500">{productContext?.label}</div>
-              <div className="mt-0.5 truncate text-sm font-semibold text-slate-900">{productContext?.value}</div>
-              <div className="mt-1 hidden text-xs leading-6 text-slate-500 sm:block">{productContext?.description}</div>
+              <div className="text-[11px] font-medium text-faint">{productContext?.label}</div>
+              <div className="mt-0.5 truncate text-sm font-semibold text-ink">{productContext?.value}</div>
+              <div className="mt-1 hidden text-xs leading-6 text-faint sm:block">{productContext?.description}</div>
             </>
           )}
         </div>
       </div>
 
       {!isCompact ? (
-        <div className="hidden border-b border-slate-200 bg-white px-4 py-2 sm:block sm:px-5 sm:py-3">
+        <div className="hidden border-b border-stroke bg-panel px-4 py-2 sm:block sm:px-5 sm:py-3">
           <TypingIndicator active={liveActive} />
         </div>
       ) : null}
 
       <div
         ref={listRef}
-        className={`min-h-0 flex-1 space-y-3 overflow-y-auto bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.92))] sm:space-y-4 ${
+        className={`min-h-0 flex-1 space-y-3 overflow-y-auto bg-inset/50 sm:space-y-4 dark:bg-inset/30 ${
           isCompact ? "p-4" : "p-3 sm:p-5"
         }`}
       >
@@ -229,7 +229,7 @@ export function MessageThread({
         ))}
 
         {conversation.messages.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-dashed border-stroke bg-panel px-4 py-10 text-center text-sm text-faint">
             هنوز پیامی در این گفتگو ثبت نشده است.
           </div>
         ) : null}

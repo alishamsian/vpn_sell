@@ -1,14 +1,20 @@
 import { notFound } from "next/navigation";
 
-import { submitPaymentAction } from "@/app/dashboard/orders/[orderId]/actions";
+import {
+  applyPricingOptionsAction,
+  payWithWalletAction,
+  submitWalletTopUpAction,
+  submitPaymentAction,
+} from "@/app/dashboard/orders/[orderId]/actions";
 import {
   sendUserChatMessageAction,
   toggleUserConversationStatusAction,
 } from "@/app/dashboard/chat/actions";
 import { OrderSupportChatCard } from "@/components/chat/order-support-chat-card";
 import { DeliveredConfigCard } from "@/components/delivered-config-card";
+import { OrderProductShowcase } from "@/components/order-product-showcase";
 import { OrderReviewPendingCard } from "@/components/order-review-pending-card";
-import { PaymentProofForm } from "@/components/payment-proof-form";
+import { PaymentFlowModal } from "@/components/payment-flow-modal";
 import { RenewPlanButton } from "@/components/renew-plan-button";
 import { requireUser } from "@/lib/auth";
 import { ensureOrderConversation } from "@/lib/chat";
@@ -38,9 +44,13 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
   }
 
   const boundSubmitPaymentAction = submitPaymentAction.bind(null, order.id);
+  const boundPayWithWalletAction = payWithWalletAction.bind(null, order.id);
+  const boundApplyPricingOptionsAction = applyPricingOptionsAction.bind(null, order.id);
+  const boundSubmitWalletTopUpAction = submitWalletTopUpAction;
   const cardHolder = process.env.CARD_TO_CARD_HOLDER ?? "نام دارنده کارت را در env تنظیم کنید";
   const cardNumber = process.env.CARD_TO_CARD_NUMBER ?? "شماره کارت را در env تنظیم کنید";
   const bankName = process.env.CARD_TO_CARD_BANK ?? "نام بانک";
+  const tonWalletAddress = process.env.TON_WALLET_ADDRESS ?? "آدرس کیف‌پول TON را در env تنظیم کنید";
 
   await ensureOrderConversation({
     orderId: order.id,
@@ -60,48 +70,86 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
       : null;
   const isOrderChatEnabled =
     order.status === "FULFILLED" || order.status === "WAITING_FOR_ACCOUNT" ? true : false;
+  const shouldShowChat = isOrderChatEnabled;
+  const pricing = {
+    subtotal: Number(order.subtotalAmount),
+    discount: Number(order.discountAmount),
+    walletApplied: Number(order.walletAppliedAmount),
+    giftCardApplied: Number(order.giftCardAppliedAmount),
+    payable: Number(order.amount),
+    walletPayableWith20Percent: Math.floor(Number(order.subtotalAmount) * 0.8),
+  };
+  const canPayNow = order.status === "PENDING_PAYMENT" && !order.payment;
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.22fr)_minmax(280px,0.72fr)]">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <section className="space-y-6">
           {order.expiresAt ? <SubscriptionNoticeCard expiresAt={order.expiresAt} /> : null}
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-soft">
-            <h1 className="text-3xl font-semibold text-slate-950">جزئیات سفارش</h1>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <InfoCard title="کد سفارش" value={order.id} mono />
-              <InfoCard title="پلن" value={order.plan.name} />
-              <InfoCard title="مبلغ" value={formatPrice(Number(order.amount))} />
-              <InfoCard title="مدت اشتراک" value={formatDuration(order.plan.durationDays)} />
-              <InfoCard title="تعداد کاربر" value={formatUserLimit(order.plan.maxUsers)} />
-              <InfoCard title="وضعیت سفارش" value={translateOrderStatus(order.status)} />
-              {order.expiresAt ? <InfoCard title="اعتبار اشتراک" value={formatDate(order.expiresAt)} /> : null}
-              {order.expiresAt ? (
-                <InfoCard title="وضعیت اشتراک" value={formatRemainingDays(order.expiresAt) ?? "-"} />
-              ) : null}
-            </div>
-          </div>
+          <OrderProductShowcase
+            orderId={order.id}
+            planName={order.plan.name}
+            priceFormatted={formatPrice(Number(order.amount))}
+            durationFormatted={formatDuration(order.plan.durationDays)}
+            userLimitFormatted={formatUserLimit(order.plan.maxUsers)}
+            orderStatusLabel={translateOrderStatus(order.status)}
+            orderStatus={order.status}
+            paymentStatus={order.payment?.status}
+            createdAtFormatted={formatDate(order.createdAt)}
+            expiresAtFormatted={order.expiresAt ? formatDate(order.expiresAt) : null}
+            subscriptionRemainingLabel={
+              order.expiresAt ? (formatRemainingDays(order.expiresAt) ?? null) : null
+            }
+            primaryAction={
+              canPayNow ? (
+                <div className="space-y-2">
+                  <PaymentFlowModal
+                    orderId={order.id}
+                    paymentRejected={order.payment?.status === "REJECTED"}
+                    statusLabel={order.payment ? translatePaymentStatus(order.payment.status) : "در انتظار پرداخت"}
+                    triggerLabel={order.payment?.status === "REJECTED" ? "پرداخت مجدد" : "پرداخت و ادامه"}
+                    triggerClassName="btn-brand w-full rounded-2xl py-3 text-base font-semibold shadow-lg shadow-black/20 hover:shadow-xl"
+                    pricing={pricing}
+                    card={{ holder: cardHolder, number: cardNumber, bank: bankName }}
+                    tonWalletAddress={tonWalletAddress}
+                    applyPricingOptionsAction={boundApplyPricingOptionsAction}
+                    payWithWalletAction={boundPayWithWalletAction}
+                    submitPaymentAction={boundSubmitPaymentAction}
+                    submitWalletTopUpAction={boundSubmitWalletTopUpAction}
+                  />
+                  <div className="text-center text-xs text-sky-100/85">
+                    برای شروع پرداخت روی دکمه بالا بزنید
+                  </div>
+                </div>
+              ) : null
+            }
+          />
 
           {order.status === "FULFILLED" && order.account ? (
-            <div id="config-ready" className="rounded-3xl border border-emerald-200 bg-emerald-50 p-8 shadow-soft">
-              <h2 className="text-2xl font-semibold text-emerald-900">کانفیگ شما آماده است</h2>
-              <p className="mt-3 text-sm leading-6 text-emerald-800">
+            <div
+              id="config-ready"
+              className="rounded-3xl border border-emerald-200 bg-emerald-50 p-8 shadow-soft dark:border-emerald-800/60 dark:bg-emerald-950/40"
+            >
+              <h2 className="text-2xl font-semibold text-emerald-900 dark:text-emerald-100">کانفیگ شما آماده است</h2>
+              <p className="mt-3 text-sm leading-6 text-emerald-800 dark:text-emerald-200">
                 پرداخت شما تایید شده و اکانت به سفارش اختصاص داده شده است.
                 {order.expiresAt ? ` این اشتراک تا ${formatDate(order.expiresAt)} فعال است.` : ""}
               </p>
-              <div className="mt-6 rounded-2xl border border-emerald-200 bg-white/70 p-4">
+              <div className="mt-6 rounded-2xl border border-emerald-200 bg-panel/70 p-4 dark:border-emerald-800/50">
                 <DeliveredConfigCard config={order.account.config} />
               </div>
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-white/70 px-4 py-3">
-                <div className="text-sm text-emerald-900">برای ادامه استفاده، از همین‌جا سفارش تمدید بسازید.</div>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-panel/70 px-4 py-3 dark:border-emerald-800/50">
+                <div className="text-sm text-emerald-900 dark:text-emerald-100">
+                  برای ادامه استفاده، از همین‌جا سفارش تمدید بسازید.
+                </div>
                 <RenewPlanButton orderId={order.id} />
               </div>
             </div>
           ) : order.status === "WAITING_FOR_ACCOUNT" ? (
-            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 shadow-soft">
-              <h2 className="text-2xl font-semibold text-amber-900">پرداخت تایید شد</h2>
-              <p className="mt-3 text-sm leading-6 text-amber-800">
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 shadow-soft dark:border-amber-800/60 dark:bg-amber-950/40">
+              <h2 className="text-2xl font-semibold text-amber-900 dark:text-amber-100">پرداخت تایید شد</h2>
+              <p className="mt-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
                 پرداخت این سفارش تایید شده اما موجودی این پلن فعلا تمام شده است. به محض اضافه شدن
                 اکانت، سفارش شما خودکار تحویل می‌شود و نتیجه در داشبورد نمایش داده خواهد شد.
               </p>
@@ -109,56 +157,32 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
           ) : order.status === "PAYMENT_SUBMITTED" || order.payment?.status === "PENDING" ? (
             <OrderReviewPendingCard />
           ) : (
-            <div id="payment-proof" className="rounded-3xl border border-slate-200 bg-white p-8 shadow-soft">
-              <h2 className="text-2xl font-semibold text-slate-950">
-                {order.payment?.status === "REJECTED" ? "ثبت مجدد رسید پرداخت" : "ثبت رسید پرداخت"}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                {order.payment?.status === "REJECTED"
-                  ? `رسید قبلی رد شده است${order.payment.reviewNote ? `: ${order.payment.reviewNote}` : "."} لطفا اطلاعات را اصلاح کنید و دوباره رسید را ثبت کنید.`
-                  : "مبلغ را کارت‌به‌کارت کنید و سپس اطلاعات و تصویر رسید را برای بررسی ثبت کنید."}
-              </p>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <InfoCard title="نام دارنده کارت" value={cardHolder} />
-                <InfoCard title="شماره کارت" value={cardNumber} mono />
-                <InfoCard title="بانک" value={bankName} />
-                <InfoCard
-                  title="وضعیت پرداخت"
-                  value={order.payment ? translatePaymentStatus(order.payment.status) : "هنوز ثبت نشده"}
-                />
-              </div>
-
-              <div className="mt-8">
-                <PaymentProofForm
-                  orderId={order.id}
-                  amount={String(Number(order.amount))}
-                  action={boundSubmitPaymentAction}
-                />
+            <div className="rounded-3xl border border-stroke bg-panel p-6 shadow-soft">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold text-ink">پرداخت و تکمیل سفارش</h2>
+                  <p className="text-sm leading-7 text-prose">
+                    برای ادامه، از دکمه پرداخت داخل کارت بالا استفاده کنید. همه گزینه‌ها (کوپن/بن/کیف‌پول) داخل همان پنجره مرحله‌ای قرار دارد.
+                  </p>
+                </div>
+                {!canPayNow ? (
+                  <span className="rounded-full border border-stroke bg-inset px-3 py-1 text-xs font-medium text-prose">
+                    پرداخت در این مرحله فعال نیست
+                  </span>
+                ) : null}
               </div>
             </div>
           )}
         </section>
 
         <aside id="order-chat" className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          <OrderSupportChatCard
-            currentUserId={user.id}
-            orderId={order.id}
-            initialConversation={orderConversation}
-            sendAction={sendUserChatMessageAction}
-            toggleStatusAction={toggleUserConversationStatusAction}
-            compact
-            enabled={isOrderChatEnabled}
-            unlockAt={chatUnlockAt}
-          />
-
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-soft">
+          <section className="rounded-card border border-stroke bg-panel p-4 shadow-soft">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold text-slate-950">مسیر سفارش</h2>
-                <p className="mt-1 text-xs leading-6 text-slate-500">{progress.summary}</p>
+                <h2 className="text-base font-semibold text-ink">مسیر سفارش</h2>
+                <p className="mt-1 text-xs leading-6 text-faint">{progress.summary}</p>
               </div>
-              <span className="rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-700">
+              <span className="rounded-full bg-elevated px-2.5 py-1 text-[11px] font-medium text-prose">
                 {progress.badge}
               </span>
             </div>
@@ -173,26 +197,24 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                           ? "bg-emerald-500 text-white"
                           : step.state === "current"
                             ? "bg-slate-950 text-white"
-                            : "bg-slate-100 text-slate-500"
+                            : "bg-elevated text-faint"
                       }`}
                     >
                       {index + 1}
                     </span>
-                    {index < progress.steps.length - 1 ? (
-                      <span className="mt-1 h-8 w-px bg-slate-200" />
-                    ) : null}
+                    {index < progress.steps.length - 1 ? <span className="mt-1 h-8 w-px bg-stroke/80" /> : null}
                   </div>
 
                   <div className="min-w-0 flex-1 pb-2">
                     <div className="flex items-center gap-2">
-                      <div className="text-sm font-semibold text-slate-900">{step.title}</div>
+                      <div className="text-sm font-semibold text-ink">{step.title}</div>
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                           step.state === "done"
-                            ? "bg-emerald-50 text-emerald-700"
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
                             : step.state === "current"
-                              ? "bg-amber-50 text-amber-700"
-                              : "bg-slate-100 text-slate-500"
+                              ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+                              : "bg-elevated text-faint"
                         }`}
                       >
                         {step.state === "done"
@@ -202,41 +224,60 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                             : "مرحله بعد"}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs leading-6 text-slate-500">{step.description}</p>
+                    <p className="mt-1 text-xs leading-6 text-faint">{step.description}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-              <div className="text-xs font-medium text-slate-500">اقدام پیشنهادی</div>
-              <div className="mt-1 text-sm font-semibold text-slate-900">{progress.nextTitle}</div>
-              <p className="mt-1 text-xs leading-6 text-slate-500">{progress.nextDescription}</p>
+            <div className="mt-4 rounded-2xl border border-stroke bg-inset px-3 py-3">
+              <div className="text-xs font-medium text-faint">اقدام پیشنهادی</div>
+              <div className="mt-1 text-sm font-semibold text-ink">{progress.nextTitle}</div>
+              <p className="mt-1 text-xs leading-6 text-faint">{progress.nextDescription}</p>
               {progress.ctaHref ? (
-                <a
-                  href={progress.ctaHref}
-                  className="mt-3 inline-flex rounded-xl bg-slate-950 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
-                >
+                <a href={progress.ctaHref} className="btn-brand-sm mt-3">
                   {progress.ctaLabel}
                 </a>
               ) : (
-                <div className="mt-3 inline-flex rounded-xl bg-slate-950 px-3 py-2 text-xs font-medium text-white">
-                  {progress.ctaLabel}
-                </div>
+                <div className="btn-brand-sm mt-3 cursor-default opacity-80">{progress.ctaLabel}</div>
               )}
             </div>
           </section>
+
+          {shouldShowChat ? (
+            <OrderSupportChatCard
+              currentUserId={user.id}
+              orderId={order.id}
+              initialConversation={orderConversation}
+              sendAction={sendUserChatMessageAction}
+              toggleStatusAction={toggleUserConversationStatusAction}
+              compact
+              enabled={isOrderChatEnabled}
+              unlockAt={chatUnlockAt}
+            />
+          ) : null}
         </aside>
       </div>
-    </div>
-  );
-}
 
-function InfoCard({ mono = false, title, value }: { title: string; value: string; mono?: boolean }) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <div className="text-xs text-slate-400">{title}</div>
-      <div className={`mt-2 text-sm font-medium text-slate-950 ${mono ? "font-mono" : ""}`}>{value}</div>
+      {canPayNow ? (
+        <div className="fixed inset-x-4 bottom-4 z-[110] sm:hidden" dir="rtl">
+          <div className="rounded-shell border border-stroke/80 bg-panel/92 p-3 shadow-2xl shadow-slate-900/10 backdrop-blur">
+            <PaymentFlowModal
+              orderId={order.id}
+              paymentRejected={order.payment?.status === "REJECTED"}
+              statusLabel={order.payment ? translatePaymentStatus(order.payment.status) : "در انتظار پرداخت"}
+              triggerLabel="پرداخت"
+              triggerClassName="btn-brand w-full rounded-2xl py-3 text-base font-semibold"
+              pricing={pricing}
+              card={{ holder: cardHolder, number: cardNumber, bank: bankName }}
+              applyPricingOptionsAction={boundApplyPricingOptionsAction}
+              payWithWalletAction={boundPayWithWalletAction}
+              submitPaymentAction={boundSubmitPaymentAction}
+              submitWalletTopUpAction={boundSubmitWalletTopUpAction}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -391,10 +432,10 @@ function SubscriptionNoticeCard({ expiresAt }: { expiresAt: Date }) {
 
   const toneClass =
     expiryStatus === "expired"
-      ? "border-rose-200 bg-rose-50"
+      ? "border-rose-200 bg-rose-50 dark:border-rose-800/60 dark:bg-rose-950/40"
       : expiryStatus === "expiringSoon"
-        ? "border-amber-200 bg-amber-50"
-        : "border-emerald-200 bg-emerald-50";
+        ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-950/40"
+        : "border-emerald-200 bg-emerald-50 dark:border-emerald-800/60 dark:bg-emerald-950/40";
   const title =
     expiryStatus === "expired"
       ? "اشتراک این سفارش منقضی شده است"
@@ -412,12 +453,12 @@ function SubscriptionNoticeCard({ expiresAt }: { expiresAt: Date }) {
     <div className={`rounded-3xl border p-5 shadow-soft ${toneClass}`}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-700">{description}</p>
+          <h2 className="text-lg font-semibold text-ink">{title}</h2>
+          <p className="mt-2 text-sm leading-6 text-prose">{description}</p>
         </div>
         <a
           href="#config-ready"
-          className="inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+          className="btn-brand"
         >
           {expiryStatus === "active" ? "مشاهده کانفیگ" : "تمدید سفارش"}
         </a>

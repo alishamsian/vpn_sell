@@ -10,6 +10,11 @@ import {
   LayoutDashboard,
   MessageSquareText,
   Package2,
+  Percent,
+  Gift,
+  Wallet,
+  BadgePercent,
+  ArrowUpCircle,
   Users,
   X,
 } from "lucide-react";
@@ -57,6 +62,36 @@ const navigationItems: AdminNavItem[] = [
     match: (pathname: string) => pathname.startsWith("/admin/catalog"),
   },
   {
+    href: "/admin/referrals",
+    label: "Referral",
+    icon: BadgePercent,
+    match: (pathname: string) => pathname.startsWith("/admin/referrals"),
+  },
+  {
+    href: "/admin/coupons",
+    label: "کد تخفیف",
+    icon: Percent,
+    match: (pathname: string) => pathname.startsWith("/admin/coupons"),
+  },
+  {
+    href: "/admin/gift-cards",
+    label: "بن خرید",
+    icon: Gift,
+    match: (pathname: string) => pathname.startsWith("/admin/gift-cards"),
+  },
+  {
+    href: "/admin/wallets",
+    label: "کیف‌پول",
+    icon: Wallet,
+    match: (pathname: string) => pathname.startsWith("/admin/wallets"),
+  },
+  {
+    href: "/admin/wallet-topups",
+    label: "شارژ کیف‌پول",
+    icon: ArrowUpCircle,
+    match: (pathname: string) => pathname.startsWith("/admin/wallet-topups"),
+  },
+  {
     href: "/admin/chat",
     label: "گفت‌وگوها",
     icon: MessageSquareText,
@@ -83,14 +118,14 @@ export function AdminSidebar({ adminName, adminEmail, stats }: AdminSidebarProps
 
   return (
     <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] shadow-soft">
-        <div className="border-b border-slate-200/80 p-5">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+      <div className="overflow-hidden rounded-card border border-stroke bg-panel shadow-soft">
+        <div className="border-b border-stroke/80 p-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200">
             <BrandMark className="h-3.5 w-auto max-w-[3.25rem] opacity-90" />
             دسترسی ادمین فعال
           </div>
-          <div className="mt-4 text-lg font-semibold text-slate-950">{adminName}</div>
-          <div className="mt-1 text-sm text-slate-500">{adminEmail ?? "ادمین سایت"}</div>
+          <div className="mt-4 text-lg font-semibold text-ink">{adminName}</div>
+          <div className="mt-1 text-sm text-faint">{adminEmail ?? "ادمین سایت"}</div>
         </div>
 
         <nav className="p-3">
@@ -107,13 +142,13 @@ export function AdminSidebar({ adminName, adminEmail, stats }: AdminSidebarProps
                   className={`flex items-center justify-between gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition ${
                     isActive
                       ? "bg-slate-950 text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)]"
-                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+                      : "text-prose hover:bg-elevated hover:text-ink"
                   }`}
                 >
                   <span className="flex items-center gap-3">
                     <span
                       className={`flex h-9 w-9 items-center justify-center rounded-2xl ${
-                        isActive ? "bg-white/10 text-white" : "bg-slate-100 text-slate-700"
+                        isActive ? "bg-panel/10 text-white" : "bg-elevated text-prose"
                       }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -124,7 +159,7 @@ export function AdminSidebar({ adminName, adminEmail, stats }: AdminSidebarProps
                   {typeof badgeValue === "number" && badgeValue > 0 ? (
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs ${
-                        isActive ? "bg-white/10 text-white" : "bg-sky-50 text-sky-700"
+                        isActive ? "bg-panel/10 text-white" : "bg-elevated text-prose"
                       }`}
                     >
                       {new Intl.NumberFormat("fa-IR").format(badgeValue)}
@@ -137,8 +172,8 @@ export function AdminSidebar({ adminName, adminEmail, stats }: AdminSidebarProps
         </nav>
       </div>
 
-      <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-soft">
-        <div className="text-xs font-medium text-slate-500">خلاصه سریع</div>
+      <div className="rounded-card border border-stroke bg-panel p-4 shadow-soft">
+        <div className="text-xs font-medium text-faint">خلاصه سریع</div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
           <QuickStat label="نیازمند بررسی" value={stats.pendingPayments} />
           <QuickStat label="پیام خوانده‌نشده" value={stats.unreadAdminChats} />
@@ -163,12 +198,12 @@ export function AdminMobileBottomBar({ adminName, adminEmail, stats }: AdminSide
   return (
     <>
       <div className="fixed inset-x-4 bottom-4 z-[95] sm:hidden" dir="rtl">
-        <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/92 p-2 shadow-2xl shadow-slate-900/10 backdrop-blur">
+        <div className="rounded-shell border border-stroke/80 bg-panel/92 p-2 shadow-2xl shadow-slate-900/10 backdrop-blur">
           <div className="grid grid-cols-5 gap-2">
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2.5 text-[11px] font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
+              className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2.5 text-[11px] font-medium text-prose transition hover:bg-inset hover:text-ink dark:text-faint dark:hover:bg-slate-800 dark:hover:text-slate-100"
             >
               <LayoutDashboard className="h-4 w-4" />
               منو
@@ -183,7 +218,9 @@ export function AdminMobileBottomBar({ adminName, adminEmail, stats }: AdminSide
                   key={item.href}
                   href={item.href}
                   className={`relative flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2.5 text-[11px] font-medium transition ${
-                    isActive ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                    isActive
+                      ? "bg-slate-950 text-white dark:bg-elevated dark:text-ink"
+                      : "text-prose hover:bg-inset hover:text-ink dark:text-faint dark:hover:bg-slate-800 dark:hover:text-slate-100"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -191,7 +228,7 @@ export function AdminMobileBottomBar({ adminName, adminEmail, stats }: AdminSide
                   {typeof badgeValue === "number" && badgeValue > 0 ? (
                     <span
                       className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] ${
-                        isActive ? "bg-white/15 text-white" : "bg-sky-50 text-sky-700"
+                        isActive ? "bg-panel/15 text-white" : "bg-elevated text-prose"
                       }`}
                     >
                       {new Intl.NumberFormat("fa-IR").format(badgeValue)}
@@ -271,21 +308,21 @@ function AdminNavDrawer({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-[1] w-full max-w-md overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl sm:rounded-3xl"
+        className="relative z-[1] w-full max-w-md overflow-hidden rounded-t-3xl border border-stroke bg-panel shadow-2xl sm:rounded-3xl"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 pb-3 pt-4 sm:px-5">
+        <div className="flex items-start justify-between gap-3 border-b border-stroke/70 px-4 pb-3 pt-4 sm:px-5">
           <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
               <BrandMark className="h-3.5 w-auto max-w-[3.25rem] opacity-90" />
               دسترسی ادمین فعال
             </div>
-            <div className="mt-3 truncate text-base font-semibold text-slate-950">{adminName}</div>
-            <div className="mt-1 truncate text-xs text-slate-500">{adminEmail ?? "ادمین سایت"}</div>
+            <div className="mt-3 truncate text-base font-semibold text-ink">{adminName}</div>
+            <div className="mt-1 truncate text-xs text-faint">{adminEmail ?? "ادمین سایت"}</div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-full border border-slate-200 bg-white p-2 text-slate-600 transition hover:bg-slate-50"
+            className="shrink-0 rounded-full border border-stroke bg-panel p-2 text-prose transition hover:bg-inset"
             aria-label="بستن"
           >
             <X className="h-4 w-4" />
@@ -307,13 +344,13 @@ function AdminNavDrawer({
                   className={`flex items-center justify-between gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition ${
                     isActive
                       ? "bg-slate-950 text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)]"
-                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+                      : "text-prose hover:bg-elevated hover:text-ink"
                   }`}
                 >
                   <span className="flex items-center gap-3">
                     <span
                       className={`flex h-9 w-9 items-center justify-center rounded-2xl ${
-                        isActive ? "bg-white/10 text-white" : "bg-slate-100 text-slate-700"
+                        isActive ? "bg-panel/10 text-white" : "bg-elevated text-prose"
                       }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -324,7 +361,7 @@ function AdminNavDrawer({
                   {typeof badgeValue === "number" && badgeValue > 0 ? (
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs ${
-                        isActive ? "bg-white/10 text-white" : "bg-sky-50 text-sky-700"
+                        isActive ? "bg-panel/10 text-white" : "bg-elevated text-prose"
                       }`}
                     >
                       {new Intl.NumberFormat("fa-IR").format(badgeValue)}
@@ -335,8 +372,8 @@ function AdminNavDrawer({
             })}
           </nav>
 
-          <div className="mt-4 rounded-3xl border border-slate-200 bg-white p-4">
-            <div className="text-xs font-medium text-slate-500">خلاصه سریع</div>
+          <div className="mt-4 rounded-3xl border border-stroke bg-panel p-4">
+            <div className="text-xs font-medium text-faint">خلاصه سریع</div>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <QuickStat label="نیازمند بررسی" value={stats.pendingPayments} />
               <QuickStat label="پیام خوانده‌نشده" value={stats.unreadAdminChats} />
@@ -351,9 +388,9 @@ function AdminNavDrawer({
 
 function QuickStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-slate-950">
+    <div className="rounded-2xl border border-stroke bg-inset px-3 py-3">
+      <div className="text-xs text-faint">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-ink">
         {new Intl.NumberFormat("fa-IR").format(value)}
       </div>
     </div>

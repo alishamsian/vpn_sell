@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { Home, LayoutDashboard, LogIn, LogOut, Package2, Shield, ShoppingBag, UserPlus } from "lucide-react";
+import { Home, LayoutDashboard, LogIn, Package2, Shield, ShoppingBag, UserPlus } from "lucide-react";
 
 type SessionLike = {
   role: "USER" | "ADMIN";
@@ -25,7 +25,7 @@ export function MobileBottomNav({
 
   return (
     <div className="fixed inset-x-4 bottom-4 z-30 sm:hidden">
-      <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/92 p-2 shadow-2xl shadow-slate-900/10 backdrop-blur">
+      <div className="rounded-shell border border-stroke/80 bg-panel/92 p-2 shadow-2xl shadow-slate-900/10 backdrop-blur dark:border-stroke/80 dark:bg-slate-900/92 dark:shadow-black/40">
         <div className="grid grid-cols-4 gap-2">
           <MobileNavLink href="/" label="خانه" icon={Home} active={pathname === "/"} />
 
@@ -72,7 +72,9 @@ function MobileNavLink({
     <Link
       href={href}
       className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2.5 text-[11px] font-medium transition ${
-        active ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+        active
+          ? "bg-slate-950 text-white dark:bg-elevated dark:text-ink"
+          : "text-prose hover:bg-inset hover:text-ink dark:text-faint dark:hover:bg-slate-800 dark:hover:text-slate-100"
       }`}
     >
       <Icon className="h-4 w-4" />

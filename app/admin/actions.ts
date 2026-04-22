@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { fulfillWaitingOrdersForPlan, reviewPayment } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
+import { reviewWalletTopUp } from "@/lib/wallet-topups";
 
 export type AdminActionState = {
   status: "idle" | "success" | "error";
@@ -379,5 +380,296 @@ export async function reviewPaymentAction(
       status: "error",
       message: error instanceof Error ? error.message : "بررسی پرداخت با خطا مواجه شد.",
     };
+  }
+}
+
+export async function createCouponAction(
+  _previousState: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+
+  const code = String(formData.get("code") ?? "").trim().toUpperCase();
+  const kind = String(formData.get("kind") ?? "").trim();
+  const valueRaw = String(formData.get("value") ?? "").trim();
+  const minOrderAmountRaw = String(formData.get("minOrderAmount") ?? "").trim();
+  const maxDiscountAmountRaw = String(formData.get("maxDiscountAmount") ?? "").trim();
+  const usageLimitTotalRaw = String(formData.get("usageLimitTotal") ?? "").trim();
+  const usageLimitPerUserRaw = String(formData.get("usageLimitPerUser") ?? "").trim();
+
+  if (!code || code.length < 3) {
+    return { status: "error", message: "کد کوپن باید حداقل ۳ کاراکتر باشد." };
+  }
+
+  if (kind !== "PERCENT" && kind !== "FIXED") {
+    return { status: "error", message: "نوع کوپن معتبر نیست." };
+  }
+
+  const value = Number(valueRaw);
+  if (!Number.isFinite(value) || value <= 0) {
+    return { status: "error", message: "مقدار کوپن باید عدد مثبت باشد." };
+  }
+
+  const toIntOrNull = (raw: string) => {
+    if (!raw) return null;
+    const parsed = Number(raw);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  };
+
+  const toDecimalOrNull = (raw: string) => {
+    if (!raw) return null;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? new Prisma.Decimal(Math.round(parsed)) : null;
+  };
+
+  const minOrderAmount = toDecimalOrNull(minOrderAmountRaw);
+  if (minOrderAmountRaw && !minOrderAmount) {
+    return { status: "error", message: "حداقل مبلغ سفارش معتبر نیست." };
+  }
+
+  const maxDiscountAmount = toDecimalOrNull(maxDiscountAmountRaw);
+  if (maxDiscountAmountRaw && !maxDiscountAmount) {
+    return { status: "error", message: "سقف تخفیف معتبر نیست." };
+  }
+
+  const usageLimitTotal = usageLimitTotalRaw ? toIntOrNull(usageLimitTotalRaw) : null;
+  if (usageLimitTotalRaw && usageLimitTotal === null) {
+    return { status: "error", message: "سقف مصرف کل معتبر نیست." };
+  }
+
+  const usageLimitPerUser = usageLimitPerUserRaw ? toIntOrNull(usageLimitPerUserRaw) : null;
+  if (usageLimitPerUserRaw && usageLimitPerUser === null) {
+    return { status: "error", message: "سقف مصرف هر کاربر معتبر نیست." };
+  }
+
+  try {
+    await prisma.coupon.create({
+      data: {
+        code,
+        kind,
+        value: new Prisma.Decimal(Math.round(value)),
+        minOrderAmount,
+        maxDiscountAmount,
+        usageLimitTotal,
+        usageLimitPerUser,
+        createdByAdminId: admin.id,
+      },
+    });
+
+    revalidatePath("/admin/coupons");
+    revalidatePath("/admin");
+    return { status: "success", message: "کوپن با موفقیت ساخته شد." };
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "ساخت کوپن ناموفق بود." };
+  }
+}
+
+export async function toggleCouponActiveAction(
+  _previousState: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdmin();
+  const couponId = String(formData.get("couponId") ?? "").trim();
+  const nextActiveRaw = String(formData.get("isActive") ?? "").trim();
+  const isActive = nextActiveRaw === "true";
+
+  if (!couponId) {
+    return { status: "error", message: "شناسه کوپن معتبر نیست." };
+  }
+
+  await prisma.coupon.update({
+    where: { id: couponId },
+    data: { isActive },
+  });
+
+  revalidatePath("/admin/coupons");
+  return { status: "success", message: isActive ? "کوپن فعال شد." : "کوپن غیرفعال شد." };
+}
+
+export async function createGiftCardAction(
+  _previousState: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  const code = String(formData.get("code") ?? "").trim().toUpperCase();
+  const amountRaw = String(formData.get("amount") ?? "").trim();
+
+  if (!code || code.length < 6) {
+    return { status: "error", message: "کد بن باید حداقل ۶ کاراکتر باشد." };
+  }
+
+  const amount = Number(amountRaw);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { status: "error", message: "مبلغ بن باید عدد مثبت باشد." };
+  }
+
+  await prisma.giftCard.create({
+    data: {
+      code,
+      initialAmount: new Prisma.Decimal(Math.round(amount)),
+      balance: new Prisma.Decimal(Math.round(amount)),
+      createdByAdminId: admin.id,
+    },
+  });
+
+  revalidatePath("/admin/gift-cards");
+  return { status: "success", message: "بن خرید ساخته شد." };
+}
+
+export async function setGiftCardStatusAction(
+  _previousState: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdmin();
+  const giftCardId = String(formData.get("giftCardId") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim();
+
+  if (!giftCardId || (status !== "ACTIVE" && status !== "DISABLED" && status !== "EXPIRED")) {
+    return { status: "error", message: "درخواست معتبر نیست." };
+  }
+
+  await prisma.giftCard.update({ where: { id: giftCardId }, data: { status } });
+  revalidatePath("/admin/gift-cards");
+  return { status: "success", message: "وضعیت بن به‌روزرسانی شد." };
+}
+
+export async function adjustWalletAction(
+  _previousState: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdmin();
+  const userId = String(formData.get("userId") ?? "").trim();
+  const amountRaw = String(formData.get("amount") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim();
+
+  if (!userId) return { status: "error", message: "شناسه کاربر معتبر نیست." };
+  if (!reason) return { status: "error", message: "دلیل تنظیم الزامی است." };
+
+  const amount = Number(amountRaw);
+  if (!Number.isFinite(amount) || amount === 0) {
+    return { status: "error", message: "مبلغ تنظیم باید عدد و غیرصفر باشد." };
+  }
+
+  const delta = new Prisma.Decimal(Math.round(Math.abs(amount)));
+  const isCredit = amount > 0;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const wallet = await tx.wallet.upsert({
+        where: { userId },
+        create: { userId },
+        update: {},
+      });
+
+      if (!isCredit) {
+        const updated = await tx.wallet.updateMany({
+          where: { id: wallet.id, balance: { gte: delta } },
+          data: { balance: { decrement: delta } },
+        });
+        if (updated.count !== 1) {
+          throw new Error("اعتبار کیف‌پول کافی نیست.");
+        }
+      } else {
+        await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: delta } } });
+      }
+
+      await tx.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          type: "ADJUST",
+          amount: delta,
+          reason,
+          refType: isCredit ? "WALLET_ADJUST_CREDIT" : "WALLET_ADJUST_DEBIT",
+          refId: userId,
+        },
+      });
+    });
+
+    revalidatePath("/admin/wallets");
+    return { status: "success", message: "کیف‌پول با موفقیت تنظیم شد." };
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "تنظیم کیف‌پول ناموفق بود." };
+  }
+}
+
+export async function createReferralCampaignAction(
+  _previousState: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+  const rewardValueRaw = String(formData.get("rewardValue") ?? "").trim();
+
+  if (!name) return { status: "error", message: "نام کمپین الزامی است." };
+
+  const rewardValue = Number(rewardValueRaw);
+  if (!Number.isFinite(rewardValue) || rewardValue <= 0) {
+    return { status: "error", message: "مقدار پاداش باید عدد مثبت باشد." };
+  }
+
+  await prisma.referralCampaign.create({
+    data: {
+      name,
+      rewardValue: new Prisma.Decimal(Math.round(rewardValue)),
+      rewardTrigger: "PAYMENT_APPROVED",
+      createdByAdminId: admin.id,
+    },
+  });
+
+  revalidatePath("/admin/referrals");
+  return { status: "success", message: "کمپین رفرال ساخته شد." };
+}
+
+export async function createReferralCodeAction(
+  _previousState: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdmin();
+  const code = String(formData.get("code") ?? "").trim().toUpperCase();
+  const campaignId = String(formData.get("campaignId") ?? "").trim();
+  const ownerUserId = String(formData.get("ownerUserId") ?? "").trim();
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!code || code.length < 4) return { status: "error", message: "کد رفرال معتبر نیست." };
+  if (!campaignId) return { status: "error", message: "کمپین الزامی است." };
+
+  await prisma.referralCode.create({
+    data: {
+      code,
+      campaignId,
+      ownerUserId: ownerUserId || null,
+      note: note || null,
+    },
+  });
+
+  revalidatePath("/admin/referrals");
+  return { status: "success", message: "کد رفرال ساخته شد." };
+}
+
+export async function reviewWalletTopUpAction(
+  _previousState: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  const topUpId = String(formData.get("topUpId") ?? "").trim();
+  const decision = String(formData.get("decision") ?? "").trim();
+  const reviewNote = String(formData.get("reviewNote") ?? "").trim();
+
+  if (!topUpId || (decision !== "approve" && decision !== "reject")) {
+    return { status: "error", message: "درخواست بررسی معتبر نیست." };
+  }
+
+  try {
+    await reviewWalletTopUp({
+      topUpId,
+      decision,
+      reviewNote: reviewNote || undefined,
+      adminId: admin.id,
+    });
+    revalidatePath("/admin/wallet-topups");
+    revalidatePath("/admin/wallets");
+    return { status: "success", message: decision === "approve" ? "شارژ تایید شد." : "شارژ رد شد." };
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "بررسی شارژ ناموفق بود." };
   }
 }

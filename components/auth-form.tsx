@@ -48,13 +48,13 @@ function SubmitButton({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="btn-brand w-full disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:brightness-100 disabled:active:scale-100"
+      className="btn-brand w-full disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-slate-950 disabled:active:scale-100 dark:disabled:hover:bg-slate-100"
     >
       <AppLoadingButtonLabel
         pending={pending}
         idleLabel={label}
         pendingLabel="در حال پردازش…"
-        spinnerClassName="h-4 w-4 text-white"
+        spinnerClassName="h-4 w-4 text-white dark:text-slate-950"
       />
     </button>
   );
@@ -66,18 +66,20 @@ export function AuthForm(props: AuthFormProps) {
   return (
     <div className="card-surface mx-auto max-w-md rounded-3xl p-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold text-slate-950">{props.title}</h1>
-        <p className="text-sm leading-6 text-slate-600">{props.description}</p>
+        <h1 className="text-3xl font-semibold text-ink">{props.title}</h1>
+        <p className="text-sm leading-6 text-prose">{props.description}</p>
       </div>
 
       <form action={formAction} className="mt-8 space-y-4">
         {props.notice ? (
-          <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{props.notice}</div>
+          <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">
+            {props.notice}
+          </div>
         ) : null}
 
         {props.fields.map((field) => (
           <div key={field.name} className="space-y-2">
-            <label htmlFor={field.name} className="text-sm font-medium text-slate-700">
+            <label htmlFor={field.name} className="text-sm font-medium text-prose">
               {field.label}
             </label>
             <input
@@ -95,8 +97,8 @@ export function AuthForm(props: AuthFormProps) {
           <div
             className={`rounded-2xl px-4 py-3 text-sm ${
               state.status === "error"
-                ? "bg-rose-50 text-rose-700"
-                : "bg-emerald-50 text-emerald-700"
+                ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200"
+                : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
             }`}
           >
             {state.message}
@@ -114,9 +116,9 @@ export function AuthForm(props: AuthFormProps) {
         <SubmitButton label={props.submitLabel} />
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-600">
+      <p className="mt-6 text-center text-sm text-prose">
         {props.alternateText}{" "}
-        <Link href={props.alternateHref} className="font-semibold text-slate-950 underline-offset-4 transition hover:text-brand-cyan hover:underline">
+        <Link href={props.alternateHref} className="link-brand font-semibold underline-offset-4 hover:underline">
           {props.alternateLabel}
         </Link>
       </p>

@@ -16,13 +16,13 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
   return (
     <div className={`flex ${isOwnMessage ? "justify-start" : "justify-end"}`}>
       <div
-        className={`max-w-[78%] rounded-[1.75rem] px-4 py-3 shadow-soft ${
+        className={`max-w-[78%] rounded-shell px-4 py-3 shadow-soft ${
           isOwnMessage
-            ? "rounded-br-md border border-sky-100 bg-sky-50 text-slate-800"
-            : "rounded-bl-md border border-slate-200 bg-white text-slate-800"
+            ? "rounded-br-md border border-sky-200/80 bg-sky-50 text-ink dark:border-sky-700/60 dark:bg-sky-950/50 dark:text-sky-50"
+            : "rounded-bl-md border border-stroke bg-panel text-ink dark:bg-elevated/90"
         }`}
       >
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-faint">
           {message.senderName}
         </div>
 
@@ -33,7 +33,9 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
         {message.attachmentUrl ? (
           <div
             className={`mt-3 rounded-2xl border px-3 py-3 ${
-              isOwnMessage ? "border-sky-200 bg-white/80" : "border-slate-200 bg-slate-50"
+              isOwnMessage
+                ? "border-sky-200 bg-panel/80 dark:border-sky-700/50 dark:bg-sky-950/35"
+                : "border-stroke bg-inset"
             }`}
           >
             {message.type === "IMAGE" ? (
@@ -48,11 +50,11 @@ export function MessageBubble({ message, isOwnMessage }: MessageBubbleProps) {
           </div>
         ) : null}
 
-        <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-400">
+        <div className="mt-3 flex items-center gap-2 text-[11px] text-faint">
           <span>{formatDateTime(message.createdAt)}</span>
           {isPending ? (
-            <span className="inline-flex items-center gap-1 text-sky-600">
-              <AppLoadingSpinner className="h-3 w-3 text-sky-600" />
+            <span className="inline-flex items-center gap-1 text-sky-600 dark:text-sky-400">
+              <AppLoadingSpinner className="h-3 w-3 text-sky-600 dark:text-sky-400" />
               در حال ارسال…
             </span>
           ) : null}

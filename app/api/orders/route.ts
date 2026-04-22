@@ -14,8 +14,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = (await request.json()) as { planId?: unknown };
+    const body = (await request.json()) as {
+      planId?: unknown;
+      couponCode?: unknown;
+      giftCardCode?: unknown;
+      useWallet?: unknown;
+    };
     const planId = typeof body.planId === "string" ? body.planId.trim() : "";
+    const couponCode = typeof body.couponCode === "string" ? body.couponCode.trim() : "";
+    const giftCardCode = typeof body.giftCardCode === "string" ? body.giftCardCode.trim() : "";
+    const useWallet = typeof body.useWallet === "boolean" ? body.useWallet : false;
 
     if (!planId) {
       return NextResponse.json(
@@ -27,6 +35,9 @@ export async function POST(request: Request) {
     const order = await createOrderForUser({
       userId: user.id,
       planId,
+      couponCode: couponCode || null,
+      giftCardCode: giftCardCode || null,
+      useWallet,
     });
 
     return NextResponse.json({

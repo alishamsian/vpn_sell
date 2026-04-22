@@ -117,13 +117,13 @@ export default async function AdminReportsPage() {
               {reports.lowStockPlans.map((plan) => (
                 <div
                   key={plan.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-800/60 dark:bg-amber-950/40"
                 >
                   <div>
-                    <div className="font-semibold text-amber-950">{plan.name}</div>
-                    <div className="mt-1 text-xs text-amber-800">{formatPrice(plan.price)}</div>
+                    <div className="font-semibold text-amber-950 dark:text-amber-100">{plan.name}</div>
+                    <div className="mt-1 text-xs text-amber-800 dark:text-amber-200">{formatPrice(plan.price)}</div>
                   </div>
-                  <div className="text-amber-900">
+                  <div className="text-amber-900 dark:text-amber-100">
                     موجودی: {new Intl.NumberFormat("fa-IR").format(plan.remainingCount)}
                   </div>
                 </div>
@@ -143,13 +143,13 @@ export default async function AdminReportsPage() {
               {reports.topPlans.map((plan) => (
                 <div
                   key={plan.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stroke bg-inset px-4 py-3 text-sm"
                 >
                   <div>
-                    <div className="font-semibold text-slate-950">{plan.name}</div>
-                    <div className="mt-1 text-xs text-slate-600">{formatPrice(plan.price)}</div>
+                    <div className="font-semibold text-ink">{plan.name}</div>
+                    <div className="mt-1 text-xs text-prose">{formatPrice(plan.price)}</div>
                   </div>
-                  <div className="text-slate-700">
+                  <div className="text-prose">
                     کل اکانت‌ها: {new Intl.NumberFormat("fa-IR").format(plan.totalCount)}
                   </div>
                 </div>
@@ -235,16 +235,16 @@ export default async function AdminReportsPage() {
             {reports.recentAuditLogs.map((log) => (
               <div
                 key={log.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stroke bg-panel px-4 py-3 text-sm"
               >
                 <div className="min-w-0">
-                  <div className="font-medium text-slate-950">{log.message}</div>
-                  <div className="mt-1 text-xs text-slate-500">
+                  <div className="font-medium text-ink">{log.message}</div>
+                  <div className="mt-1 text-xs text-faint">
                     سفارش: {log.payment.order.id} | کاربر: {log.payment.order.user.name} | پلن:{" "}
                     {log.payment.order.plan.name}
                   </div>
                 </div>
-                <div className="text-xs text-slate-400">{formatDateTime(log.createdAt)}</div>
+                <div className="text-xs text-faint">{formatDateTime(log.createdAt)}</div>
               </div>
             ))}
           </div>
@@ -262,14 +262,14 @@ export default async function AdminReportsPage() {
             {reports.recentNotifications.map((notification) => (
               <div
                 key={notification.id}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                className="rounded-2xl border border-stroke bg-inset px-4 py-3 text-sm"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="font-semibold text-slate-950">{notification.title}</div>
-                  <div className="text-xs text-slate-400">{formatDateTime(notification.createdAt)}</div>
+                  <div className="font-semibold text-ink">{notification.title}</div>
+                  <div className="text-xs text-faint">{formatDateTime(notification.createdAt)}</div>
                 </div>
-                <div className="mt-2 text-sm leading-6 text-slate-600">{notification.message}</div>
-                <div className="mt-2 text-xs text-slate-500">
+                <div className="mt-2 text-sm leading-6 text-prose">{notification.message}</div>
+                <div className="mt-2 text-xs text-faint">
                   کاربر: {notification.user.name}
                   {notification.orderId ? ` | سفارش: ${notification.orderId}` : ""}
                 </div>

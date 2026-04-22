@@ -19,23 +19,23 @@ export function PaymentReviewList({ payments, limit }: AdminPaymentsListProps) {
   return (
     <div className="grid gap-4">
       {visiblePayments.map((payment) => (
-        <article key={payment.id} className="rounded-3xl border border-slate-200 p-5">
+        <article key={payment.id} className="rounded-3xl border border-stroke p-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
             <div className="space-y-2">
-              <div className="text-lg font-semibold text-slate-950">{payment.order.plan.name}</div>
-              <div className="text-sm text-slate-600">
+              <div className="text-lg font-semibold text-ink">{payment.order.plan.name}</div>
+              <div className="text-sm text-prose">
                 کاربر: {payment.order.user.name} | {payment.order.user.phone ?? payment.order.user.email ?? "-"}
               </div>
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-prose">
                 مبلغ: {formatPrice(Number(payment.amount))} | کد پیگیری: {payment.trackingCode}
               </div>
-              <div className="text-sm text-slate-600">۴ رقم آخر کارت: {payment.cardLast4}</div>
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-prose">۴ رقم آخر کارت: {payment.cardLast4}</div>
+              <div className="text-sm text-prose">
                 وضعیت: {translatePaymentStatus(payment.status)}
                 {payment.reviewSource ? ` | منبع بررسی: ${translateReviewSource(payment.reviewSource)}` : ""}
                 {payment.order.status === "WAITING_FOR_ACCOUNT" ? " | سفارش: در انتظار تخصیص اکانت" : ""}
               </div>
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-prose">
                 تلگرام:{" "}
                 {payment.telegramSentAt
                   ? "ارسال شده"
@@ -56,21 +56,21 @@ export function PaymentReviewList({ payments, limit }: AdminPaymentsListProps) {
           <div className="mt-4">
             <AdminPaymentReview paymentId={payment.id} status={payment.status} />
             {payment.reviewNote ? (
-              <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <div className="mt-3 rounded-2xl bg-inset px-4 py-3 text-sm text-prose">
                 یادداشت بررسی: {payment.reviewNote}
               </div>
             ) : null}
             {payment.auditLogs.length > 0 ? (
-              <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="text-xs font-medium text-slate-500">تاریخچه پرداخت</div>
+              <div className="mt-3 rounded-2xl border border-stroke bg-inset px-4 py-3">
+                <div className="text-xs font-medium text-faint">تاریخچه پرداخت</div>
                 <div className="mt-2 space-y-2">
                   {payment.auditLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600"
+                      className="flex flex-wrap items-center justify-between gap-2 text-xs text-prose"
                     >
                       <span>{log.message}</span>
-                      <span className="text-slate-400">{formatAdminDateTime(log.createdAt)}</span>
+                      <span className="text-faint">{formatAdminDateTime(log.createdAt)}</span>
                     </div>
                   ))}
                 </div>

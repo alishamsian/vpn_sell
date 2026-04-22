@@ -35,6 +35,8 @@ type ChatShellProps = {
   /** فقط کاربر: لیست سفارش‌ها برای جابه‌جایی بین گفتگوی عمومی و گفتگوی هر سفارش */
   userChatOrderOptions?: UserChatOrderOption[];
   generalConversationId?: string;
+  /** اگر لازم است API چت را اسکوپ کنیم (مثلاً چت ادمینِ یک کاربر) */
+  apiBasePath?: string;
 };
 
 export function ChatShell({
@@ -48,6 +50,7 @@ export function ChatShell({
   variant = "default",
   userChatOrderOptions,
   generalConversationId: generalConversationIdProp,
+  apiBasePath = "/api/chat",
 }: ChatShellProps) {
   const [conversations, setConversations] = useState(initialConversations);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
@@ -59,7 +62,7 @@ export function ChatShell({
   const selectionStorageKey = getChatSelectionStorageKey(role, currentUserId);
 
   const refreshConversations = useCallback(async () => {
-    const response = await fetch("/api/chat/conversations", {
+    const response = await fetch(`${apiBasePath}/conversations`, {
       credentials: "same-origin",
       cache: "no-store",
     });
@@ -73,11 +76,11 @@ export function ChatShell({
     };
 
     setConversations(data.conversations);
-  }, []);
+  }, [apiBasePath]);
 
   const refreshSelectedConversation = useCallback(
     async (conversationId: string, markAsRead = true) => {
-      const response = await fetch(`/api/chat/conversations/${conversationId}`, {
+      const response = await fetch(`${apiBasePath}/conversations/${conversationId}`, {
         credentials: "same-origin",
         cache: "no-store",
       });
@@ -94,7 +97,7 @@ export function ChatShell({
 
       if (markAsRead) {
         await Promise.all([
-          fetch(`/api/chat/conversations/${conversationId}/read`, {
+          fetch(`${apiBasePath}/conversations/${conversationId}/read`, {
             method: "POST",
             credentials: "same-origin",
           }),
@@ -102,7 +105,7 @@ export function ChatShell({
         ]);
       }
     },
-    [refreshConversations],
+    [apiBasePath, refreshConversations],
   );
 
   const appendOptimisticMessage = useCallback(
@@ -322,7 +325,7 @@ export function ChatShell({
     <div
       className={
         isTelegramAdmin
-          ? "grid min-h-[calc(100vh-11rem)] gap-0 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-soft lg:grid-cols-[360px_minmax(0,1fr)]"
+          ? "grid min-h-[calc(100vh-11rem)] gap-0 overflow-hidden rounded-card border border-stroke bg-panel shadow-soft lg:grid-cols-[360px_minmax(0,1fr)]"
           : "flex min-h-[calc(100dvh-14rem)] flex-col gap-4 overflow-hidden lg:min-h-[calc(100vh-13rem)] lg:grid lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)] lg:gap-6"
       }
     >
@@ -349,7 +352,7 @@ export function ChatShell({
       <div
         className={
           isTelegramAdmin
-            ? "flex min-h-0 flex-col border-r border-slate-200 bg-slate-50/40"
+            ? "flex min-h-0 flex-col border-r border-stroke bg-inset/40"
             : "flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
         }
       >
@@ -373,8 +376,8 @@ export function ChatShell({
         <div
           className={
             isTelegramAdmin
-              ? "border-t border-slate-200 bg-white p-4"
-              : "shrink-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5"
+              ? "border-t border-stroke bg-panel p-4"
+              : "shrink-0 rounded-2xl border border-stroke bg-panel p-4 shadow-soft sm:p-5"
           }
         >
           {showUserOrderPicker ? (
@@ -387,7 +390,7 @@ export function ChatShell({
               refreshConversations={refreshConversations}
             />
           ) : null}
-          <div className="mb-2 text-xs font-semibold text-slate-900 sm:mb-3 sm:text-sm">
+          <div className="mb-2 text-xs font-semibold text-ink sm:mb-3 sm:text-sm">
             {isTelegramAdmin ? "پاسخ به کاربر" : "ارسال پیام"}
           </div>
           <MessageComposer

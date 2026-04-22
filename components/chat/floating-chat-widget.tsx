@@ -51,7 +51,7 @@ export function FloatingChatWidget({
   emptyDescription,
   canComposeWithoutConversation = true,
   launcherClassName =
-    "fixed bottom-6 inset-inline-start-6 inline-flex h-14 items-center gap-3 rounded-full border border-sky-100 bg-white px-5 text-sm font-semibold text-slate-900 shadow-[0_14px_30px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_36px_rgba(15,23,42,0.16)]",
+    "fixed bottom-6 inset-inline-start-6 inline-flex h-14 items-center gap-3 rounded-full border border-stroke bg-panel px-5 text-sm font-semibold text-ink shadow-[0_14px_30px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-stroke hover:shadow-[0_18px_36px_rgba(15,23,42,0.16)] dark:shadow-black/40",
   panelClassName = "fixed bottom-24 inset-inline-start-4 w-[min(23rem,calc(100vw-2rem))]",
 }: FloatingChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -291,7 +291,7 @@ export function FloatingChatWidget({
         className={launcherClassName}
         style={{ zIndex: 99999 }}
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-sky-700">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-elevated text-prose">
           <MessageCircleMore className="h-4.5 w-4.5" />
         </span>
         <span>چت</span>
@@ -303,11 +303,11 @@ export function FloatingChatWidget({
           className={panelClassName}
           style={{ zIndex: 99999 }}
         >
-          <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl shadow-slate-900/15">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-2.5">
+          <div className="overflow-hidden rounded-shell border border-stroke bg-panel shadow-2xl shadow-black/10 dark:shadow-black/40">
+            <div className="flex items-center justify-between gap-3 border-b border-stroke px-4 py-2.5">
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-slate-950">{title}</div>
-                <div className="mt-0.5 text-[11px] text-slate-500">
+                <div className="truncate text-sm font-semibold text-ink">{title}</div>
+                <div className="mt-0.5 text-[11px] text-faint">
                   {conversation?.title ?? "گفت‌وگوی سریع پشتیبانی"}
                 </div>
               </div>
@@ -315,7 +315,7 @@ export function FloatingChatWidget({
               <div className="flex items-center gap-2">
                 <Link
                   href={fullChatHref}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stroke bg-panel text-prose transition hover:border-stroke hover:bg-inset"
                   title="باز کردن نسخه بزرگ"
                 >
                   <Expand className="h-4 w-4" />
@@ -323,7 +323,7 @@ export function FloatingChatWidget({
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stroke bg-panel text-prose transition hover:border-stroke hover:bg-inset"
                   title="بستن"
                 >
                   <X className="h-4 w-4" />
@@ -332,8 +332,8 @@ export function FloatingChatWidget({
             </div>
 
             {conversations.length > 0 ? (
-              <div className="border-b border-slate-200 px-4 py-2.5">
-                <label className="mb-1.5 block text-[10px] font-medium text-slate-500">
+              <div className="border-b border-stroke px-4 py-2.5">
+                <label className="mb-1.5 block text-[10px] font-medium text-faint">
                   {role === "ADMIN" ? "گفت‌وگوی فعال" : "محصول / موضوع گفتگو"}
                 </label>
                 <select
@@ -341,7 +341,7 @@ export function FloatingChatWidget({
                   onChange={(event) => {
                     void selectConversation(event.target.value);
                   }}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900 outline-none transition focus:border-slate-400"
+                  className="w-full rounded-2xl border border-stroke bg-inset px-3 py-2 text-[13px] text-ink outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
                 >
                   {conversations.map((item) => (
                     <option key={item.id} value={item.id}>
@@ -352,13 +352,13 @@ export function FloatingChatWidget({
               </div>
             ) : null}
 
-            <div className="border-b border-slate-200 px-4 py-1.5">
+            <div className="border-b border-stroke px-4 py-1.5">
               <TypingIndicator active={liveActive} label="به‌روزرسانی سریع فعال است" />
             </div>
 
             <div
               ref={listRef}
-              className="h-[16.5rem] space-y-3 overflow-y-auto bg-slate-50/70 px-4 py-3"
+              className="h-[16.5rem] space-y-3 overflow-y-auto bg-inset/70 px-4 py-3"
             >
               {conversation ? (
                 conversation.messages.length > 0 ? (
@@ -370,19 +370,19 @@ export function FloatingChatWidget({
                     />
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                  <div className="rounded-2xl border border-dashed border-stroke bg-panel px-4 py-6 text-center text-sm text-faint">
                     هنوز پیامی ثبت نشده است.
                   </div>
                 )
               ) : (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center">
-                  <div className="text-sm font-semibold text-slate-950">{emptyTitle}</div>
-                  <div className="mt-2 text-xs leading-6 text-slate-500">{emptyDescription}</div>
+                <div className="rounded-2xl border border-dashed border-stroke bg-panel px-4 py-6 text-center">
+                  <div className="text-sm font-semibold text-ink">{emptyTitle}</div>
+                  <div className="mt-2 text-xs leading-6 text-faint">{emptyDescription}</div>
                 </div>
               )}
             </div>
 
-            <div className="border-t border-slate-200 px-4 py-3">
+            <div className="border-t border-stroke px-4 py-3">
               <MessageComposer
                 action={sendAction}
                 conversationId={conversation?.id}

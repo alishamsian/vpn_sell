@@ -109,7 +109,7 @@ export default async function AdminPage() {
           action={
             <Link
               href="/admin/payments"
-              className="inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+              className="btn-brand-sm"
             >
               مشاهده همه پرداخت‌ها
             </Link>
@@ -134,17 +134,17 @@ export default async function AdminPage() {
               {topPlans.map((plan) => (
                 <div
                   key={plan.id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+                  className="rounded-2xl border border-stroke bg-inset px-4 py-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="font-semibold text-slate-950">{plan.name}</div>
-                      <div className="mt-1 text-sm text-slate-600">
+                      <div className="font-semibold text-ink">{plan.name}</div>
+                      <div className="mt-1 text-sm text-prose">
                         {formatPrice(plan.price)} | {formatDuration(plan.durationDays)} |{" "}
                         {formatUserLimit(plan.maxUsers)}
                       </div>
                     </div>
-                    <div className="text-sm text-slate-600">
+                    <div className="text-sm text-prose">
                       موجودی: {toPersianNumber(plan.remainingCount)}
                     </div>
                   </div>
@@ -159,7 +159,7 @@ export default async function AdminPage() {
             action={
               <Link
                 href="/admin/catalog"
-                className="text-sm font-medium text-sky-700 transition hover:text-sky-800"
+                className="text-sm font-medium text-prose transition hover:text-ink"
               >
                 مدیریت موجودی
               </Link>
@@ -170,16 +170,16 @@ export default async function AdminPage() {
                 criticalPlans.map((plan) => (
                   <div
                     key={plan.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm"
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-800/60 dark:bg-amber-950/40"
                   >
-                    <span className="font-semibold text-amber-950">{plan.name}</span>
-                    <span className="text-amber-800">
+                    <span className="font-semibold text-amber-950 dark:text-amber-100">{plan.name}</span>
+                    <span className="text-amber-800 dark:text-amber-200">
                       فقط {toPersianNumber(plan.remainingCount)} اکانت باقی مانده
                     </span>
                   </div>
                 ))
               ) : (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-200">
                   فعلا هشدار فوری برای موجودی پلن‌ها ندارید.
                 </div>
               )}

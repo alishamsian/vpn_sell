@@ -26,9 +26,9 @@ export default async function AdminUsersPage() {
           <AdminTableEmptyState label="هنوز کاربری ثبت نشده است." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-right text-sm">
+            <table className="min-w-full divide-y divide-stroke text-right text-sm">
               <thead>
-                <tr className="text-slate-500">
+                <tr className="text-faint">
                   <th className="px-4 py-3 font-medium">کاربر</th>
                   <th className="px-4 py-3 font-medium">نقش</th>
                   <th className="px-4 py-3 font-medium">تماس</th>
@@ -37,51 +37,51 @@ export default async function AdminUsersPage() {
                   <th className="px-4 py-3 font-medium">آخرین سفارش</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-stroke/70">
                 {users.map((user) => (
-                  <tr key={user.id} className="align-top text-slate-700">
+                  <tr key={user.id} className="align-top text-prose">
                     <td className="px-4 py-4">
-                      <div className="font-semibold text-slate-950">{user.name}</div>
-                      <div className="mt-1 font-mono text-xs text-slate-500">{user.id}</div>
+                      <div className="font-semibold text-ink">{user.name}</div>
+                      <div className="mt-1 font-mono text-xs text-faint">{user.id}</div>
                     </td>
                     <td className="px-4 py-4">
                       <span
                         className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                          user.role === "ADMIN" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"
+                          user.role === "ADMIN" ? "bg-slate-900 text-white" : "bg-elevated text-prose"
                         }`}
                       >
                         {user.role === "ADMIN" ? "ادمین" : "کاربر"}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-slate-600">
+                    <td className="px-4 py-4 text-prose">
                       <div dir="ltr" className="text-left">
                         {user.email ?? "-"}
                       </div>
-                      <div dir="ltr" className="mt-1 text-left text-xs text-slate-500">
+                      <div dir="ltr" className="mt-1 text-left text-xs text-faint">
                         {user.phone ?? "-"}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-slate-600">
+                    <td className="px-4 py-4 text-prose">
                       <div>کل: {new Intl.NumberFormat("fa-IR").format(user.orders.length)}</div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-1 text-xs text-faint">
                         تحویل‌شده: {new Intl.NumberFormat("fa-IR").format(user.fulfilledOrders)}
                       </div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-1 text-xs text-faint">
                         گفتگوها: {new Intl.NumberFormat("fa-IR").format(user._count.conversations)}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-slate-600">{formatPrice(user.totalSpent)}</td>
-                    <td className="px-4 py-4 text-slate-600">
+                    <td className="px-4 py-4 text-prose">{formatPrice(user.totalSpent)}</td>
+                    <td className="px-4 py-4 text-prose">
                       {user.lastOrder ? (
                         <div className="space-y-2">
-                          <div className="text-xs text-slate-500">{formatDate(user.lastOrder.createdAt)}</div>
-                          <div className="text-sm font-medium text-slate-900">{user.lastOrder.plan.name}</div>
-                          <div className="font-mono text-xs text-slate-500" dir="ltr">
+                          <div className="text-xs text-faint">{formatDate(user.lastOrder.createdAt)}</div>
+                          <div className="text-sm font-medium text-ink">{user.lastOrder.plan.name}</div>
+                          <div className="font-mono text-xs text-faint" dir="ltr">
                             {user.lastOrder.id}
                           </div>
                         </div>
                       ) : (
-                        <span className="text-slate-400">-</span>
+                        <span className="text-faint">-</span>
                       )}
                     </td>
                   </tr>

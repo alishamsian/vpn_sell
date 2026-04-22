@@ -53,10 +53,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={toast.id}
             className={`rounded-2xl border px-4 py-3 text-sm shadow-soft ${
               toast.tone === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/90 dark:text-emerald-100"
                 : toast.tone === "error"
-                  ? "border-rose-200 bg-rose-50 text-rose-800"
-                  : "border-slate-200 bg-white text-slate-800"
+                  ? "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800/50 dark:bg-rose-950/90 dark:text-rose-100"
+                  : "border-stroke bg-panel text-ink"
             }`}
           >
             {toast.title}

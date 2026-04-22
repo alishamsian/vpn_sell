@@ -35,12 +35,12 @@ export function MiniLegend({
             : "bg-slate-500";
 
   return (
-    <div className="flex flex-wrap gap-3 text-xs text-slate-600">
+    <div className="flex flex-wrap gap-3 text-xs text-prose">
       {items.map((item) => (
-        <div key={item.label} className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1">
+        <div key={item.label} className="flex items-center gap-2 rounded-full border border-stroke bg-panel px-3 py-1">
           <span className={`h-2 w-2 rounded-full ${toneClass(item.tone)}`} />
-          <span className="text-slate-500">{item.label}</span>
-          <span className="font-semibold text-slate-900">{item.value}</span>
+          <span className="text-faint">{item.label}</span>
+          <span className="font-semibold text-ink">{item.value}</span>
         </div>
       ))}
     </div>
@@ -99,12 +99,12 @@ export function SparkLine({
     .filter(({ idx }) => idx % labelEvery === 0 || idx === data.length - 1);
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] px-4 py-4">
+    <div className="rounded-3xl border border-stroke bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] px-4 py-4 dark:bg-[linear-gradient(180deg,rgba(30,41,59,0.85),rgba(15,23,42,0.92))]">
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[9rem] w-full" preserveAspectRatio="none">
         <polygon points={areaPoints} className={`${toneFill}`} />
         <polyline points={points} className={`fill-none ${toneStroke}`} strokeWidth="3" strokeLinejoin="round" />
       </svg>
-      <div className="mt-2 flex justify-between gap-2 text-[11px] text-slate-500">
+      <div className="mt-2 flex justify-between gap-2 text-[11px] text-faint">
         {xLabels.map(({ d, idx }) => (
           <div key={`${d.day}-${idx}`} className="tabular-nums">
             {formatDayLabel(d.day)}
@@ -124,7 +124,6 @@ export function DonutChart({
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
 
-  let offset = 0;
   const strokeFor = (tone: string) =>
     tone === "emerald"
       ? "#10b981"
@@ -136,35 +135,54 @@ export function DonutChart({
             ? "#64748b"
             : "#0ea5e9";
 
+  const segments = items.reduce(
+    (acc, item) => {
+      const fraction = item.value / total;
+      const dash = fraction * circumference;
+      const dashOffset = circumference - acc.offset;
+      acc.offset += dash;
+      acc.items.push({
+        label: item.label,
+        tone: item.tone,
+        dash,
+        dashOffset,
+      });
+      return acc;
+    },
+    {
+      offset: 0,
+      items: [] as Array<{
+        label: string;
+        tone: "emerald" | "amber" | "rose" | "slate" | "sky";
+        dash: number;
+        dashOffset: number;
+      }>,
+    },
+  ).items;
+
   return (
     <div className="grid gap-4 sm:grid-cols-[auto,1fr] sm:items-center">
       <div className="relative h-[110px] w-[110px] shrink-0">
         <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
-          <circle cx="60" cy="60" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="12" />
-          {items.map((item) => {
-            const fraction = item.value / total;
-            const dash = fraction * circumference;
-            const dashOffset = circumference - offset;
-            offset += dash;
-            return (
-              <circle
-                key={item.label}
-                cx="60"
-                cy="60"
-                r={radius}
-                fill="none"
-                stroke={strokeFor(item.tone)}
-                strokeWidth="12"
-                strokeDasharray={`${dash} ${circumference - dash}`}
-                strokeDashoffset={dashOffset}
-                strokeLinecap="round"
-              />
-            );
-          })}
+          <circle cx="60" cy="60" r={radius} fill="none" className="text-stroke" stroke="currentColor" strokeWidth="12" />
+          {segments.map((segment) => (
+            <circle
+              key={segment.label}
+              cx="60"
+              cy="60"
+              r={radius}
+              fill="none"
+              stroke={strokeFor(segment.tone)}
+              strokeWidth="12"
+              strokeDasharray={`${segment.dash} ${circumference - segment.dash}`}
+              strokeDashoffset={segment.dashOffset}
+              strokeLinecap="round"
+            />
+          ))}
         </svg>
         <div className="absolute inset-0 grid place-items-center text-center">
-          <div className="text-xs text-slate-500">جمع</div>
-          <div className="text-lg font-semibold text-slate-950">{new Intl.NumberFormat("fa-IR").format(total)}</div>
+          <div className="text-xs text-faint">جمع</div>
+          <div className="text-lg font-semibold text-ink">{new Intl.NumberFormat("fa-IR").format(total)}</div>
         </div>
       </div>
 
@@ -178,10 +196,10 @@ export function DonutChart({
                   className="h-2.5 w-2.5 rounded-full"
                   style={{ backgroundColor: strokeFor(item.tone) }}
                 />
-                <span className="text-slate-700">{item.label}</span>
+                <span className="text-prose">{item.label}</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <span className="font-semibold text-slate-900">{new Intl.NumberFormat("fa-IR").format(item.value)}</span>
+              <div className="flex items-center gap-2 text-xs text-faint">
+                <span className="font-semibold text-ink">{new Intl.NumberFormat("fa-IR").format(item.value)}</span>
                 <span>({percent}٪)</span>
               </div>
             </div>
@@ -216,12 +234,12 @@ export function BarsList({
       {items.map((item) => {
         const width = clamp((item.value / max) * 100, 0, 100);
         return (
-          <div key={item.label} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <div key={item.label} className="rounded-2xl border border-stroke bg-panel px-4 py-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 truncate text-sm font-medium text-slate-950">{item.label}</div>
-              <div className="shrink-0 text-xs font-semibold text-slate-700">{valueLabel(item.value)}</div>
+              <div className="min-w-0 truncate text-sm font-medium text-ink">{item.label}</div>
+              <div className="shrink-0 text-xs font-semibold text-prose">{valueLabel(item.value)}</div>
             </div>
-            <div className="mt-3 h-2 w-full rounded-full bg-slate-100">
+            <div className="mt-3 h-2 w-full rounded-full bg-elevated">
               <div className={`h-2 rounded-full ${toneClass(item.tone)}`} style={{ width: `${width}%` }} />
             </div>
           </div>
