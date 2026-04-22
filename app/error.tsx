@@ -21,7 +21,11 @@ export default function AppError({
         <span className="font-mono text-xs" dir="ltr">
           DATABASE_URL
         </span>
-        ) را در پنل Vercel بررسی کنید.
+        ) را در پنل Vercel بررسی کنید. اگر کد جدید با تغییر دیتابیس آمده، روی همان دیتابیس production حتماً{" "}
+        <span className="font-mono text-xs" dir="ltr">
+          npx prisma migrate deploy
+        </span>{" "}
+        اجرا شده باشد.
       </p>
       {error.digest ? (
         <p className="text-xs text-faint" dir="ltr">
