@@ -44,7 +44,6 @@ function createPrismaClient() {
   });
 }
 
-const cached = globalForPrisma.prisma;
 // در dev ممکن است بعد از prisma generate، instance قبلی هنوز در global cache بماند
 // و مدل‌های جدید (delegateها) را نداشته باشد. در این حالت، یک بار بازسازی می‌کنیم.
 const requiredDelegates = [
@@ -57,14 +56,38 @@ const requiredDelegates = [
   "referralCampaign",
   "referralCode",
   "referralAttribution",
+  "walletTopUp",
 ] as const;
 
-const needsRefresh =
-  Boolean(cached) &&
-  requiredDelegates.some((delegate) => !(delegate in (cached as unknown as Record<string, unknown>)));
+function getPrismaClient(): PrismaClient {
+  const cached = globalForPrisma.prisma;
+  const needsRefresh =
+    Boolean(cached) &&
+    requiredDelegates.some((delegate) => !(delegate in (cached as unknown as Record<string, unknown>)));
 
-export const prisma = needsRefresh ? createPrismaClient() : cached ?? createPrismaClient();
+  if (needsRefresh && cached) {
+    void cached.$disconnect().catch(() => {});
+    globalForPrisma.prisma = undefined;
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
+  }
+
+  return globalForPrisma.prisma;
 }
+
+/**
+ * Prisma را تنبل نگه می‌داریم تا import کردن `@/lib/prisma` در زمان build (مثلاً بدون DATABASE_URL)
+ * بلافاصله به خطا نخورد؛ فقط با اولین دسترسی واقعی به delegateها ساخته می‌شود.
+ */
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    const client = getPrismaClient();
+    const value = Reflect.get(client as unknown as object, prop, receiver);
+    if (typeof value === "function") {
+      return (value as (...args: unknown[]) => unknown).bind(client);
+    }
+    return value;
+  },
+}) as PrismaClient;
