@@ -15,6 +15,11 @@ function resolveDatabaseUrl(): string {
     const poolTimeout = process.env.DATABASE_POOL_TIMEOUT ?? "30";
     const connectTimeout = process.env.DATABASE_CONNECT_TIMEOUT ?? "20";
 
+    // روی Vercel → Supabase گاهی بدون sslmode اتصال TLS برقرار نمی‌شود.
+    if (url.hostname.includes("supabase.co") && !url.searchParams.has("sslmode")) {
+      url.searchParams.set("sslmode", "require");
+    }
+
     if (!url.searchParams.has("pool_timeout")) {
       url.searchParams.set("pool_timeout", poolTimeout);
     }

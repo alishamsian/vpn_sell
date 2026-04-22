@@ -8,11 +8,39 @@ import { getPlansWithInventory } from "@/lib/queries";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [plans, session] = await Promise.all([getPlansWithInventory(), getSession()]);
+  const session = await getSession();
+
+  let plans: Awaited<ReturnType<typeof getPlansWithInventory>> = [];
+  let plansLoadError: string | null = null;
+
+  try {
+    plans = await getPlansWithInventory();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    plansLoadError = message;
+    console.error("[HomePage] getPlansWithInventory failed:", error);
+  }
+
   const totalInventory = plans.reduce((sum, plan) => sum + plan.remainingCount, 0);
 
   return (
     <div className="space-y-10">
+      {plansLoadError ? (
+        <div
+          className="rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100"
+          role="alert"
+        >
+          <div className="font-semibold">بارگذاری پلن‌ها از دیتابیس ناموفق بود</div>
+          <p className="mt-2 text-amber-900/90 dark:text-amber-100/90">
+            معمولاً روی Vercel یکی از این موارد است:{" "}
+            <span className="font-medium">DATABASE_URL</span> اشتباه یا خالی، آدرس pooler Supabase (پورت 6543) نبودن، یا{" "}
+            <span className="font-medium">migration</span>ها روی دیتابیس production اجرا نشده‌اند.
+          </p>
+          <p className="mt-2 font-mono text-xs opacity-90" dir="ltr">
+            {plansLoadError}
+          </p>
+        </div>
+      ) : null}
       <section className="card-surface relative overflow-hidden px-5 py-8 shadow-soft sm:px-10 sm:py-12">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.14),transparent_30%),radial-gradient(circle_at_left,rgba(56,189,248,0.08),transparent_24%),linear-gradient(135deg,rgba(239,246,255,0.6),transparent_45%)]" />
         <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_320px] lg:items-center">
