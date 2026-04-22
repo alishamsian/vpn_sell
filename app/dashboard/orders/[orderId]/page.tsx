@@ -270,6 +270,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
               triggerClassName="btn-brand w-full rounded-2xl py-3 text-base font-semibold"
               pricing={pricing}
               card={{ holder: cardHolder, number: cardNumber, bank: bankName }}
+              tonWalletAddress={tonWalletAddress}
               applyPricingOptionsAction={boundApplyPricingOptionsAction}
               payWithWalletAction={boundPayWithWalletAction}
               submitPaymentAction={boundSubmitPaymentAction}
