@@ -20,9 +20,17 @@ import {
 import { reviewPayment } from "@/lib/orders";
 import { buildTelegramDailyReportText } from "@/lib/telegram-daily-report";
 import {
+  formatAdminReportsSnippetForTelegram,
+  formatCatalogInventoryForTelegram,
+  formatCouponsTelegramSummary,
+  formatGiftCardsTelegramSummary,
   formatOpenConversationsForTelegram,
   formatPendingPaymentsForTelegram,
+  formatPendingWalletTopUpsForTelegram,
+  formatRecentUsersForTelegram,
+  formatReferralsTelegramSummary,
   formatWaitingAccountOrdersForTelegram,
+  formatWalletsTelegramSummary,
   getAdminOverview,
 } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
@@ -161,6 +169,70 @@ async function handleTelegramAdminReplyKeyboard(message: TelegramInboundMessage)
     return true;
   }
 
+  if (text === L.USERS) {
+    const s = await formatRecentUsersForTelegram();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.WALLET_TOPUPS) {
+    const s = await formatPendingWalletTopUpsForTelegram();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.CATALOG) {
+    const s = await formatCatalogInventoryForTelegram();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.COUPONS) {
+    const s = await formatCouponsTelegramSummary();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.REPORTS_SITE) {
+    const s = await formatAdminReportsSnippetForTelegram();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.WALLETS) {
+    const s = await formatWalletsTelegramSummary();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.GIFT_CARDS) {
+    const s = await formatGiftCardsTelegramSummary();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.REFERRALS) {
+    const s = await formatReferralsTelegramSummary();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
   return false;
 }
 
@@ -182,8 +254,8 @@ async function handleTelegramAdminCommands(message: TelegramInboundMessage): Pro
     return true;
   }
 
-  if (cmd === "/links") {
-    await sendAdminPlainTextMessage("لینک‌های سریع به پنل:", {
+  if (cmd === "/links" || cmd === "/panel") {
+    await sendAdminPlainTextMessage("لینک همهٔ بخش‌های پنل ادمین:", {
       reply_markup: buildAdminMenuReplyMarkup(),
     });
     return true;

@@ -308,6 +308,14 @@ export const TELEGRAM_ADMIN_REPLY_LABELS = {
   PENDING_PAYMENTS: "⏳ پرداخت‌های معلق",
   WAITING_ACCOUNT: "📦 در انتظار اکانت",
   OPEN_CHATS: "💬 چت‌های باز",
+  USERS: "🧑‍💼 کاربران",
+  WALLET_TOPUPS: "💳 شارژ کیف (معلق)",
+  CATALOG: "📦 کاتالوگ",
+  COUPONS: "🎟 کوپن‌ها",
+  REPORTS_SITE: "📉 گزارش‌ها",
+  WALLETS: "👛 کیف‌ها",
+  GIFT_CARDS: "🎁 هدیه",
+  REFERRALS: "🔗 رفرال",
   CLOSE_KB: "❌ بستن دکمه‌های پایین",
 } as const;
 
@@ -322,6 +330,10 @@ export function buildAdminReplyKeyboardMarkup(): Record<string, unknown> {
       [L.STATUS, L.REPORT_FULL],
       [L.PENDING_PAYMENTS, L.WAITING_ACCOUNT],
       [L.OPEN_CHATS, L.LINKS],
+      [L.USERS, L.CATALOG],
+      [L.WALLET_TOPUPS, L.COUPONS],
+      [L.REPORTS_SITE, L.WALLETS],
+      [L.GIFT_CARDS, L.REFERRALS],
       [L.HELP, L.REFRESH],
       [L.CLOSE_KB],
     ],
@@ -343,36 +355,66 @@ export function buildAdminWelcomeText() {
     "• روی پیام رسید Reply بزنید و متن بفرستید = رد با همان متن (به کاربر نشان داده می‌شود).",
     "  برای تایید سریع همان Reply را با کلمهٔ approve یا تایید بفرستید.",
     "• از دکمه‌های زیر هر رسید برای تایید/رد و اقدام‌های دیگر استفاده کنید.",
-    "• از دکمه‌های پایین صفحه برای آمار، گزارش و لینک پنل استفاده کنید.",
+    "• از دکمه‌های پایین صفحه برای آمار، لیست‌ها و لینک همهٔ بخش‌های پنل استفاده کنید.",
     "",
-    "دستورات: /start و /help و /menu — منو | /report — آمار لحظه‌ای",
+    "دستورات: /start /menu — منو کامل | /report — آمار | /panel — فقط لینک پنل",
   ].join("\n");
+}
+
+/** لینک اینلاین به همهٔ صفحات اصلی پنل ادمین. */
+export function buildAdminFullPanelInlineMarkup(): {
+  inline_keyboard: Array<Array<{ text: string; url?: string; callback_data?: string }>>;
+} {
+  const base = getAppBaseUrl();
+  if (!base) {
+    return {
+      inline_keyboard: [
+        [
+          {
+            text: "دامنه ست نشد — NEXT_PUBLIC_APP_URL",
+            callback_data: "admin_menu",
+          },
+        ],
+      ],
+    };
+  }
+
+  const u = (path: string) => `${base}${path}`;
+
+  return {
+    inline_keyboard: [
+      [
+        { text: "🏠 داشبورد", url: u("/admin") },
+        { text: "💳 پرداخت‌ها", url: u("/admin/payments") },
+      ],
+      [
+        { text: "💬 چت", url: u("/admin/chat") },
+        { text: "🧑‍💼 کاربران", url: u("/admin/users") },
+      ],
+      [
+        { text: "📦 کاتالوگ", url: u("/admin/catalog") },
+        { text: "🎟 کوپن‌ها", url: u("/admin/coupons") },
+      ],
+      [
+        { text: "📉 گزارش‌ها", url: u("/admin/reports") },
+        { text: "👛 کیف‌ها", url: u("/admin/wallets") },
+      ],
+      [
+        { text: "💳 شارژ کیف", url: u("/admin/wallet-topups") },
+        { text: "🎁 کارت هدیه", url: u("/admin/gift-cards") },
+      ],
+      [
+        { text: "🔗 رفرال", url: u("/admin/referrals") },
+        { text: "🤖 تلگرام", url: u("/admin/telegram") },
+      ],
+      [{ text: "🔄 تازه‌سازی منو", callback_data: "admin_menu" }],
+    ],
+  };
 }
 
 /** دکمه‌های میان‌خطی لینک به پنل و بازگردانی منو. */
 export function buildAdminMenuReplyMarkup() {
-  const base = getAppBaseUrl();
-  const paymentsUrl = base ? `${base}/admin/payments` : null;
-  const adminUrl = base ? `${base}/admin` : null;
-  const chatUrl = base ? `${base}/admin/chat` : null;
-  const telegramPanelUrl = base ? `${base}/admin/telegram` : null;
-
-  const linkRow = [
-    ...(paymentsUrl ? [{ text: "پرداخت‌ها", url: paymentsUrl }] : []),
-    ...(adminUrl ? [{ text: "داشبورد", url: adminUrl }] : []),
-  ];
-  const linkRow2 = [
-    ...(chatUrl ? [{ text: "چت", url: chatUrl }] : []),
-    ...(telegramPanelUrl ? [{ text: "تلگرام", url: telegramPanelUrl }] : []),
-  ];
-
-  return {
-    inline_keyboard: [
-      ...(linkRow.length > 0 ? [linkRow] : []),
-      ...(linkRow2.length > 0 ? [linkRow2] : []),
-      [{ text: "تازه‌سازی منو", callback_data: "admin_menu" }],
-    ].filter((row) => row.length > 0),
-  };
+  return buildAdminFullPanelInlineMarkup();
 }
 
 /** دستورات پیشنهادی ربات در منوی تلگرام (پس از setWebhook یک‌بار صدا زده می‌شود). */
@@ -386,7 +428,8 @@ export async function setTelegramBotCommands() {
     { command: "help", description: "راهنمای کوتاه ربات" },
     { command: "menu", description: "نمایش مجدد منو و دکمه‌های پایین" },
     { command: "report", description: "خلاصه وضعیت (پرداخت، چت، …)" },
-    { command: "links", description: "فقط لینک‌های سریع پنل" },
+    { command: "links", description: "همان لینک‌های کامل پنل" },
+    { command: "panel", description: "لینک همهٔ بخش‌های پنل ادمین" },
   ];
 
   await telegramRequest<true>("setMyCommands", JSON.stringify({ commands }));

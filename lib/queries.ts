@@ -1,4 +1,10 @@
-import { AccountStatus, PaymentStatus, UserRole } from "@prisma/client";
+import {
+  AccountStatus,
+  PaymentStatus,
+  ReferralAttributionStatus,
+  UserRole,
+  WalletTopUpStatus,
+} from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getReceiptAccessUrl } from "@/lib/storage";
@@ -911,6 +917,231 @@ export async function formatOpenConversationsForTelegram(limit = 6): Promise<str
   });
 
   return ["💬 چت‌های باز (خلاصه):", "", ...lines].join("\n");
+}
+
+/** شارژهای کیف در انتظار تایید برای تلگرام */
+export async function formatPendingWalletTopUpsForTelegram(limit = 8): Promise<string> {
+  const rows = await prisma.walletTopUp.findMany({
+    where: { status: WalletTopUpStatus.PENDING },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: {
+      user: { select: { name: true, email: true, phone: true } },
+    },
+  });
+
+  if (rows.length === 0) {
+    return "شارژ کیف‌پول در انتظار بررسی ندارید.";
+  }
+
+  const fmt = telegramTomanFormatter;
+  const lines = rows.map((t, i) => {
+    const who = t.user.phone ?? t.user.email ?? t.user.name;
+    const amount = fmt.format(Number(t.amount));
+    return `${i + 1}. ${who} — ${amount} تومان — پیگیری: ${t.trackingCode} — شارژ: ${t.id}`;
+  });
+
+  return ["💳 شارژ کیف در انتظار:", "", ...lines].join("\n");
+}
+
+/** آخرین کاربران ثبت‌نام‌شده */
+export async function formatRecentUsersForTelegram(limit = 10): Promise<string> {
+  const rows = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      createdAt: true,
+    },
+  });
+
+  if (rows.length === 0) {
+    return "کاربری ثبت نشده است.";
+  }
+
+  const lines = rows.map((u, i) => {
+    const contact = u.phone ?? u.email ?? "-";
+    return `${i + 1}. ${u.name} (${u.role}) — ${contact} — id: ${u.id}`;
+  });
+
+  return ["🧑‍💼 آخرین کاربران:", "", ...lines].join("\n");
+}
+
+/** موجودی پلن‌ها (کاتالوگ) */
+export async function formatCatalogInventoryForTelegram(): Promise<string> {
+  const plans = await getPlansWithInventory();
+  if (plans.length === 0) {
+    return "پلنی در دیتابیس نیست.";
+  }
+
+  const lines = plans.map(
+    (p) =>
+      `• ${p.name}: ${p.remainingCount} آماده / ${p.soldCount} فروش رفته — قیمت ${telegramTomanFormatter.format(p.price)} تومان`,
+  );
+
+  return ["📦 کاتالوگ و موجودی اکانت:", "", ...lines].join("\n");
+}
+
+/** خلاصهٔ کوپن‌ها */
+export async function formatCouponsTelegramSummary(limit = 12): Promise<string> {
+  const [activeCount, total] = await Promise.all([
+    prisma.coupon.count({ where: { isActive: true } }),
+    prisma.coupon.count(),
+  ]);
+
+  const rows = await prisma.coupon.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      code: true,
+      kind: true,
+      value: true,
+      isActive: true,
+      _count: { select: { redemptions: true } },
+    },
+  });
+
+  const lines = rows.map((c) => {
+    const val = telegramTomanFormatter.format(Number(c.value));
+    const state = c.isActive ? "فعال" : "غیرفعال";
+    return `• ${c.code} (${c.kind}) ${val} — ${state} — استفاده: ${c._count.redemptions}`;
+  });
+
+  return [`🎟 کوپن‌ها: ${activeCount} فعال از ${total} کل`, "", ...lines].join("\n");
+}
+
+/** خلاصهٔ کارت هدیه */
+export async function formatGiftCardsTelegramSummary(limit = 8): Promise<string> {
+  const grouped = await prisma.giftCard.groupBy({
+    by: ["status"],
+    _count: { _all: true },
+  });
+
+  const statusLine = grouped
+    .map((g) => `${g.status}: ${g._count._all}`)
+    .join(" | ");
+
+  const rows = await prisma.giftCard.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      code: true,
+      balance: true,
+      status: true,
+      initialAmount: true,
+    },
+  });
+
+  const lines = rows.map((g) => {
+    const bal = telegramTomanFormatter.format(Number(g.balance));
+    const init = telegramTomanFormatter.format(Number(g.initialAmount));
+    return `• ${g.code} — مانده ${bal} / ${init} — ${g.status}`;
+  });
+
+  return [`🎁 کارت هدیه (${statusLine || "—"})`, "", ...lines].join("\n");
+}
+
+/** خلاصهٔ رفرال */
+export async function formatReferralsTelegramSummary(): Promise<string> {
+  const [pendingAttr, campaigns, codes] = await Promise.all([
+    prisma.referralAttribution.count({
+      where: { status: ReferralAttributionStatus.PENDING },
+    }),
+    prisma.referralCampaign.findMany({
+      where: { isActive: true },
+      take: 5,
+      select: { name: true, rewardValue: true },
+    }),
+    prisma.referralCode.count({ where: { isActive: true } }),
+  ]);
+
+  const campLines = campaigns.map(
+    (c) =>
+      `• ${c.name} — پاداش ${telegramTomanFormatter.format(Number(c.rewardValue))} تومان`,
+  );
+
+  return [
+    "🔗 رفرال",
+    `جایزه در انتظار: ${pendingAttr} | کدهای فعال: ${codes}`,
+    "",
+    "کمپین‌های فعال:",
+    ...(campLines.length ? campLines : ["—"]),
+  ].join("\n");
+}
+
+/** خلاصهٔ کیف پول‌ها */
+export async function formatWalletsTelegramSummary(): Promise<string> {
+  const [walletCount, agg, topBalances] = await Promise.all([
+    prisma.wallet.count(),
+    prisma.wallet.aggregate({ _sum: { balance: true } }),
+    prisma.wallet.findMany({
+      orderBy: { balance: "desc" },
+      take: 6,
+      select: {
+        balance: true,
+        user: { select: { name: true, phone: true } },
+      },
+    }),
+  ]);
+
+  const total = agg._sum.balance != null ? telegramTomanFormatter.format(Number(agg._sum.balance)) : "0";
+  const lines = topBalances.map((w, i) => {
+    const b = telegramTomanFormatter.format(Number(w.balance));
+    const who = w.user.phone ?? w.user.name;
+    return `${i + 1}. ${who} — ${b} تومان`;
+  });
+
+  return [
+    "👛 کیف پول‌ها",
+    `تعداد کیف‌ها: ${walletCount} — جمع مانده (تقریبی): ${total} تومان`,
+    "",
+    "بیشترین مانده:",
+    ...lines,
+  ].join("\n");
+}
+
+/** نمای خیلی کوتاه برای بخش گزارش‌ها */
+export async function formatAdminReportsSnippetForTelegram(): Promise<string> {
+  const since = new Date();
+  since.setDate(since.getDate() - 7);
+
+  const [orders, approvedPayments, newUsers] = await Promise.all([
+    prisma.order.count({ where: { createdAt: { gte: since } } }),
+    prisma.payment.count({
+      where: {
+        status: PaymentStatus.APPROVED,
+        reviewedAt: { gte: since },
+      },
+    }),
+    prisma.user.count({ where: { createdAt: { gte: since }, role: UserRole.USER } }),
+  ]);
+
+  const audits = await prisma.paymentAuditLog.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: { action: true, message: true, createdAt: true },
+  });
+
+  const auditLines = audits.map((a) => {
+    const msg = a.message.length > 70 ? `${a.message.slice(0, 70)}…` : a.message;
+    return `• ${a.action}: ${msg}`;
+  });
+
+  return [
+    "📉 گزارش‌ها (۷ روز اخیر، خلاصه)",
+    `سفارش جدید: ${orders}`,
+    `پرداخت تاییدشده: ${approvedPayments}`,
+    `کاربر جدید: ${newUsers}`,
+    "",
+    "آخرین رویدادهای پرداخت:",
+    ...(auditLines.length ? auditLines : ["—"]),
+    "",
+    "برای نمودار و جزئیات کامل صفحهٔ گزارش‌ها را در پنل باز کنید.",
+  ].join("\n");
 }
 
 export async function getAdminUsers() {
