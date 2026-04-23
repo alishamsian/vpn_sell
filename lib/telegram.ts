@@ -117,7 +117,7 @@ function getTelegramApiUrl(method: string) {
   return `https://api.telegram.org/bot${botToken}/${method}`;
 }
 
-function getAppBaseUrl() {
+export function getAppBaseUrl() {
   const explicit = stripEnvValue(process.env.NEXT_PUBLIC_APP_URL);
   if (explicit) {
     return explicit.replace(/\/$/, "");
@@ -325,8 +325,15 @@ export type TelegramAdminReplyLabel =
 /** منوی پایین صفحه (ظاهر دکمهٔ شیشه‌ای تلگرام). */
 export function buildAdminReplyKeyboardMarkup(): Record<string, unknown> {
   const L = TELEGRAM_ADMIN_REPLY_LABELS;
+  const base = getAppBaseUrl();
+  const webPanelRow =
+    base.length > 0
+      ? [[{ text: "🖥 پنل کامل (تلگرام)", web_app: { url: `${base}/auth/telegram-webapp` } }]]
+      : [];
+
   return {
     keyboard: [
+      ...webPanelRow,
       [L.STATUS, L.REPORT_FULL],
       [L.PENDING_PAYMENTS, L.WAITING_ACCOUNT],
       [L.OPEN_CHATS, L.LINKS],
@@ -356,14 +363,20 @@ export function buildAdminWelcomeText() {
     "  برای تایید سریع همان Reply را با کلمهٔ approve یا تایید بفرستید.",
     "• از دکمه‌های زیر هر رسید برای تایید/رد و اقدام‌های دیگر استفاده کنید.",
     "• از دکمه‌های پایین صفحه برای آمار، لیست‌ها و لینک همهٔ بخش‌های پنل استفاده کنید.",
+    "• دکمهٔ «پنل کامل» همان UI وب ادمین را داخل تلگرام باز می‌کند (بعد از /setdomain در BotFather).",
     "",
     "دستورات: /start /menu — منو کامل | /report — آمار | /panel — فقط لینک پنل",
   ].join("\n");
 }
 
+type AdminInlineButton =
+  | { text: string; url: string }
+  | { text: string; callback_data: string }
+  | { text: string; web_app: { url: string } };
+
 /** لینک اینلاین به همهٔ صفحات اصلی پنل ادمین. */
 export function buildAdminFullPanelInlineMarkup(): {
-  inline_keyboard: Array<Array<{ text: string; url?: string; callback_data?: string }>>;
+  inline_keyboard: AdminInlineButton[][];
 } {
   const base = getAppBaseUrl();
   if (!base) {
@@ -380,9 +393,11 @@ export function buildAdminFullPanelInlineMarkup(): {
   }
 
   const u = (path: string) => `${base}${path}`;
+  const webAppUrl = `${base}/auth/telegram-webapp`;
 
   return {
     inline_keyboard: [
+      [{ text: "🖥 پنل کامل در تلگرام", web_app: { url: webAppUrl } }],
       [
         { text: "🏠 داشبورد", url: u("/admin") },
         { text: "💳 پرداخت‌ها", url: u("/admin/payments") },
