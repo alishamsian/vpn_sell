@@ -11,14 +11,29 @@ import {
   setTelegramWebhook,
 } from "@/lib/telegram";
 
-function getRequestOrigin() {
-  const h = headers();
-  // Next 16 headers() is async in some runtimes; support both.
+async function getRequestOrigin() {
+  const maybe = headers();
+  // Next 16: headers() might be async depending on runtime typing.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getHeader = (name: string) => (h as any).get?.(name) as string | null | undefined;
+  const h = (await (maybe as any)) as any;
+  const getHeader = (name: string) => (h?.get?.(name) as string | null | undefined) ?? null;
+
   const proto = getHeader("x-forwarded-proto") ?? "https";
   const host = getHeader("x-forwarded-host") ?? getHeader("host") ?? "";
   if (!host) {
+    // Fallbacks for environments where forwarded headers aren't available
+    const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    if (explicit) {
+      return explicit.replace(/\/$/, "");
+    }
+    const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+    if (prod) {
+      return `https://${prod.replace(/\/$/, "")}`;
+    }
+    const vercel = process.env.VERCEL_URL?.trim();
+    if (vercel) {
+      return `https://${vercel.replace(/\/$/, "")}`;
+    }
     return "";
   }
   return `${proto}://${host}`;
@@ -38,7 +53,7 @@ export async function setWebhookFromAdminAction(
     };
   }
 
-  const origin = getRequestOrigin();
+  const origin = await getRequestOrigin();
   if (!origin) {
     return { status: "error" as const, message: "آدرس سایت از روی درخواست مشخص نشد." };
   }
