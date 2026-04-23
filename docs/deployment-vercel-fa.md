@@ -249,6 +249,13 @@ curl -sS -X POST "https://api.telegram.org/botYOUR_BOT_TOKEN/setWebhook" \
 - برای **پاسخ چت از تلگرام** باید `message` هم فعال باشد.
 - ادمین باید متن پاسخ را به‌صورت **Reply** روی پیامی که ربات فرستاده ارسال کند (Reply به پیام دیگر جواب ثبت نمی‌کند).
 
+### دکمهٔ تایید/رد در تلگرام کار نمی‌کند
+
+1. در Vercel برای دامنهٔ production **Deployment Protection** (رمز / لاگین Vercel روی URL) فعال نباشد؛ تلگرام نمی‌تواند وب‌هوک را بزند.
+2. در مرورگر باز کنید: `https://دامنه شما/api/telegram/review` — باید JSON ببینید. سپس `?probe=1` (و اگر `TELEGRAM_WEBHOOK_SECRET` دارید `&key=...`) تا فیلدهای `url` و `last_error_message` از تلگرام را ببینید؛ **url** باید دقیقاً همین مسیر با **https** باشد.
+3. `allowed_updates` در `setWebhook` باید حداقل شامل **`callback_query`** باشد.
+4. مقدار **`TELEGRAM_ADMIN_CHAT_ID`** را بدون نقل‌قول اضافی در env بگذارید (همان آیدی چتی که رسید می‌آید یا آیدی کاربری شما).
+
 ---
 
 ## مرجع سریع دستورات

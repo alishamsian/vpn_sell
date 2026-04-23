@@ -2,14 +2,19 @@ import { NextResponse } from "next/server";
 
 import { sendConversationMessage } from "@/lib/chat";
 import {
-  answerTelegramCallback,
+  answerTelegramCallbackSafe,
   editTelegramMessage,
+  fetchTelegramWebhookInfo,
+  getTelegramAdminChatIdNormalized,
+  getTelegramWebhookSecretNormalized,
   validateTelegramSecret,
 } from "@/lib/telegram";
 import { reviewPayment } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 type TelegramInboundMessage = {
   message_id?: number;
@@ -38,7 +43,7 @@ type TelegramUpdate = {
 };
 
 async function handleTelegramAdminTextReply(message: TelegramInboundMessage) {
-  const allowedChatId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim();
+  const allowedChatId = getTelegramAdminChatIdNormalized();
   if (!allowedChatId || !message.chat?.id || String(message.chat.id) !== allowedChatId) {
     return;
   }
@@ -82,7 +87,7 @@ async function handleTelegramAdminTextReply(message: TelegramInboundMessage) {
 }
 
 function isTelegramAdminActor(callback: NonNullable<TelegramUpdate["callback_query"]>) {
-  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim();
+  const adminChatId = getTelegramAdminChatIdNormalized();
   if (!adminChatId) {
     return false;
   }
@@ -92,29 +97,61 @@ function isTelegramAdminActor(callback: NonNullable<TelegramUpdate["callback_que
   return messageChatId === adminChatId || fromUserId === adminChatId;
 }
 
+function parseCallbackData(data: string): { decision: string; paymentId: string } {
+  const i = data.indexOf(":");
+  if (i <= 0) {
+    return { decision: "", paymentId: "" };
+  }
+  return {
+    decision: data.slice(0, i).trim(),
+    paymentId: data.slice(i + 1).trim(),
+  };
+}
+
+/**
+ * تلگرام ترجیح می‌دهد همیشه 200 بگیرد تا آپدیت را تکرار نکند.
+ * خطا را در بدنه یا لاگ می‌گذاریم، نه با 401 روی کل درخواست (مگر پارس بدنه).
+ */
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  if (searchParams.get("probe") !== "1") {
+    return NextResponse.json({
+      ok: true,
+      message: "این آدرس برای وب‌هوک تلگرام است (فقط POST). برای عیب‌یابی: همان URL با ?probe=1",
+      hint:
+        "اگر TELEGRAM_WEBHOOK_SECRET در env دارید: ?probe=1&key=همان_مقدار تا وضعیت getWebhookInfo را ببینید. اگر secret خالی است فقط ?probe=1",
+    });
+  }
+
+  const expected = getTelegramWebhookSecretNormalized();
+  if (expected) {
+    const key = searchParams.get("key")?.trim();
+    if (key !== expected) {
+      return NextResponse.json({ ok: false, error: "key نامعتبر یا missing" }, { status: 403 });
+    }
+  }
+
+  const info = await fetchTelegramWebhookInfo();
+  return NextResponse.json({ ok: true, webhook: info });
+}
+
 export async function POST(request: Request) {
   let body: TelegramUpdate;
   try {
     body = (await request.json()) as TelegramUpdate;
   } catch {
-    return NextResponse.json({ ok: false }, { status: 400 });
+    return NextResponse.json({ ok: true });
   }
 
   const secretOk = validateTelegramSecret(request);
   if (!secretOk) {
     const cb = body.callback_query;
-    if (cb?.id) {
-      try {
-        await answerTelegramCallback(
-          cb.id,
-          "توکن وب‌هوک با سرور یکی نیست. در Vercel TELEGRAM_WEBHOOK_SECRET را با secret_token در setWebhook هماهنگ کنید.",
-          { showAlert: true },
-        );
-      } catch (error) {
-        console.error("[telegram webhook] secret mismatch, answerCallback failed:", error);
-      }
-    }
-    return NextResponse.json({ ok: false }, { status: 401 });
+    await answerTelegramCallbackSafe(
+      cb?.id,
+      "توکن وب‌هوک با سرور یکی نیست. در Vercel TELEGRAM_WEBHOOK_SECRET را با secret_token در setWebhook هماهنگ کنید.",
+      { showAlert: true },
+    );
+    return NextResponse.json({ ok: true });
   }
 
   if (body.message && !body.callback_query) {
@@ -133,35 +170,23 @@ export async function POST(request: Request) {
   }
 
   if (!callback.data || !callback.message?.chat?.id || callback.message.message_id == null) {
-    try {
-      await answerTelegramCallback(callback.id, "داده دکمه ناقص است.", { showAlert: true });
-    } catch (error) {
-      console.error("[telegram webhook] invalid callback payload:", error);
-    }
+    await answerTelegramCallbackSafe(callback.id, "ساختار دکمه ناقص است.", { showAlert: true });
     return NextResponse.json({ ok: true });
   }
 
   if (!isTelegramAdminActor(callback)) {
-    try {
-      await answerTelegramCallback(
-        callback.id,
-        "فقط ادمین مجاز است. TELEGRAM_ADMIN_CHAT_ID باید آیدی همین چت یا آیدی تلگرام شما باشد.",
-        { showAlert: true },
-      );
-    } catch (error) {
-      console.error("[telegram webhook] forbidden answer failed:", error);
-    }
+    await answerTelegramCallbackSafe(
+      callback.id,
+      "دسترسی ندارید. TELEGRAM_ADMIN_CHAT_ID باید آیدی همین چت یا آیدی تلگرام شما باشد.",
+      { showAlert: true },
+    );
     return NextResponse.json({ ok: true });
   }
 
-  const [decision, paymentId] = callback.data.split(":");
+  const { decision, paymentId } = parseCallbackData(callback.data);
 
   if (!paymentId || (decision !== "approve" && decision !== "reject")) {
-    try {
-      await answerTelegramCallback(callback.id, "داده دکمه نامعتبر است.", { showAlert: true });
-    } catch (error) {
-      console.error("[telegram webhook] bad callback data:", error);
-    }
+    await answerTelegramCallbackSafe(callback.id, "داده دکمه نامعتبر است.", { showAlert: true });
     return NextResponse.json({ ok: true });
   }
 
@@ -210,20 +235,17 @@ export async function POST(request: Request) {
       }
     }
 
-    await answerTelegramCallback(
+    await answerTelegramCallbackSafe(
       callback.id,
       decision === "approve"
         ? `پرداخت تایید شد.${result.config ? " کانفیگ تخصیص یافت." : ""}`
         : "پرداخت رد شد؛ کاربر می‌تواند رسید جدید بفرستد.",
+      { showAlert: true },
     );
   } catch (error) {
     const msg = error instanceof Error ? error.message : "خطا در بررسی پرداخت";
     console.error("[telegram webhook] reviewPayment failed:", error);
-    try {
-      await answerTelegramCallback(callback.id, msg.slice(0, 180), { showAlert: true });
-    } catch (answerError) {
-      console.error("[telegram webhook] answerCallback after error failed:", answerError);
-    }
+    await answerTelegramCallbackSafe(callback.id, msg.slice(0, 180), { showAlert: true });
   }
 
   return NextResponse.json({ ok: true });

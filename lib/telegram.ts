@@ -2,15 +2,73 @@ type TelegramMessage = {
   message_id: number;
 };
 
+function stripEnvValue(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  let v = value.trim();
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    v = v.slice(1, -1).trim();
+  }
+  return v || undefined;
+}
+
 function getTelegramConfig() {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
-  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim();
-  const secretToken = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+  const botToken = stripEnvValue(process.env.TELEGRAM_BOT_TOKEN);
+  const adminChatId = stripEnvValue(process.env.TELEGRAM_ADMIN_CHAT_ID);
+  const secretToken = stripEnvValue(process.env.TELEGRAM_WEBHOOK_SECRET);
 
   return {
     botToken,
     adminChatId,
     secretToken,
+  };
+}
+
+/** برای وب‌هوک: آیدی ادمین بعد از trim و حذف نقل‌قول‌های اضافی env */
+export function getTelegramAdminChatIdNormalized(): string | undefined {
+  return getTelegramConfig().adminChatId;
+}
+
+export function getTelegramWebhookSecretNormalized(): string | undefined {
+  return getTelegramConfig().secretToken;
+}
+
+export async function fetchTelegramWebhookInfo(): Promise<{
+  ok: boolean;
+  url?: string;
+  pending_update_count?: number;
+  last_error_message?: string;
+  last_error_date?: number;
+  allowed_updates?: string[];
+  error?: string;
+}> {
+  const { botToken } = getTelegramConfig();
+  if (!botToken) {
+    return { ok: false, error: "TELEGRAM_BOT_TOKEN خالی است." };
+  }
+  const res = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
+  const body = (await res.json()) as {
+    ok: boolean;
+    result?: {
+      url?: string;
+      pending_update_count?: number;
+      last_error_message?: string;
+      last_error_date?: number;
+      allowed_updates?: string[];
+    };
+  };
+  if (!body.ok || !body.result) {
+    return { ok: false, error: "getWebhookInfo ناموفق بود." };
+  }
+  const r = body.result;
+  return {
+    ok: true,
+    url: r.url,
+    pending_update_count: r.pending_update_count,
+    last_error_message: r.last_error_message,
+    last_error_date: r.last_error_date,
+    allowed_updates: r.allowed_updates,
   };
 }
 
@@ -314,10 +372,26 @@ export async function answerTelegramCallback(
     "answerCallbackQuery",
     JSON.stringify({
       callback_query_id: callbackQueryId,
-      text: text.slice(0, 200),
+      text: text.length > 0 ? text.slice(0, 200) : "انجام شد.",
       show_alert: Boolean(options?.showAlert),
     }),
   );
+}
+
+/** پاسخ به تلگرام نباید کل درخواست را بترکاند؛ خطا فقط لاگ می‌شود. */
+export async function answerTelegramCallbackSafe(
+  callbackQueryId: string | undefined,
+  text: string,
+  options?: { showAlert?: boolean },
+) {
+  if (!callbackQueryId) {
+    return;
+  }
+  try {
+    await answerTelegramCallback(callbackQueryId, text, options);
+  } catch (error) {
+    console.error("[telegram] answerCallbackQuery failed:", error);
+  }
 }
 
 export async function editTelegramMessage(params: {
