@@ -298,6 +298,43 @@ function buildInlineKeyboard(params: { paymentId: string; orderId: string }) {
   };
 }
 
+/** برچسب‌های دکمهٔ پایین صفحه (Reply Keyboard) — باید با متن دریافتی وب‌هوک یکی باشد. */
+export const TELEGRAM_ADMIN_REPLY_LABELS = {
+  STATUS: "📊 وضعیت لحظه‌ای",
+  REPORT_FULL: "📈 گزارش کامل امروز",
+  LINKS: "🔗 لینک‌های پنل",
+  HELP: "📋 راهنما و دستورات",
+  REFRESH: "🔄 بروزرسانی منو",
+  PENDING_PAYMENTS: "⏳ پرداخت‌های معلق",
+  WAITING_ACCOUNT: "📦 در انتظار اکانت",
+  OPEN_CHATS: "💬 چت‌های باز",
+  CLOSE_KB: "❌ بستن دکمه‌های پایین",
+} as const;
+
+export type TelegramAdminReplyLabel =
+  (typeof TELEGRAM_ADMIN_REPLY_LABELS)[keyof typeof TELEGRAM_ADMIN_REPLY_LABELS];
+
+/** منوی پایین صفحه (ظاهر دکمهٔ شیشه‌ای تلگرام). */
+export function buildAdminReplyKeyboardMarkup(): Record<string, unknown> {
+  const L = TELEGRAM_ADMIN_REPLY_LABELS;
+  return {
+    keyboard: [
+      [L.STATUS, L.REPORT_FULL],
+      [L.PENDING_PAYMENTS, L.WAITING_ACCOUNT],
+      [L.OPEN_CHATS, L.LINKS],
+      [L.HELP, L.REFRESH],
+      [L.CLOSE_KB],
+    ],
+    resize_keyboard: true,
+    is_persistent: true,
+    input_field_placeholder: "Reply به رسید یا پیام چت کاربر…",
+  };
+}
+
+export function buildReplyKeyboardRemove(): Record<string, unknown> {
+  return { remove_keyboard: true };
+}
+
 /** متن خوش‌آمد برای ادمین (دستورات /start و /help). */
 export function buildAdminWelcomeText() {
   return [
@@ -306,8 +343,9 @@ export function buildAdminWelcomeText() {
     "• روی پیام رسید Reply بزنید و متن بفرستید = رد با همان متن (به کاربر نشان داده می‌شود).",
     "  برای تایید سریع همان Reply را با کلمهٔ approve یا تایید بفرستید.",
     "• از دکمه‌های زیر هر رسید برای تایید/رد و اقدام‌های دیگر استفاده کنید.",
+    "• از دکمه‌های پایین صفحه برای آمار، گزارش و لینک پنل استفاده کنید.",
     "",
-    "دستورات: /start و /help — منو | /report — آمار لحظه‌ای | /menu — نمایش مجدد منو",
+    "دستورات: /start و /help و /menu — منو | /report — آمار لحظه‌ای",
   ].join("\n");
 }
 
@@ -344,10 +382,11 @@ export async function setTelegramBotCommands() {
   }
 
   const commands = [
-    { command: "start", description: "منوی ادمین و لینک‌های پنل" },
+    { command: "start", description: "منوی ادمین، دکمه‌های پایین و لینک پنل" },
     { command: "help", description: "راهنمای کوتاه ربات" },
-    { command: "menu", description: "نمایش مجدد منو" },
+    { command: "menu", description: "نمایش مجدد منو و دکمه‌های پایین" },
     { command: "report", description: "خلاصه وضعیت (پرداخت، چت، …)" },
+    { command: "links", description: "فقط لینک‌های سریع پنل" },
   ];
 
   await telegramRequest<true>("setMyCommands", JSON.stringify({ commands }));
@@ -506,6 +545,21 @@ export async function sendAdminPlainTextMessage(
   }
 
   return telegramRequest<TelegramMessage>("sendMessage", JSON.stringify(payload));
+}
+
+/** خوش‌آمد + Reply Keyboard و یک پیام جدا با لینک‌های اینلاین پنل. */
+export async function sendAdminOnboardingKeyboardBundle() {
+  await sendAdminPlainTextMessage(
+    [
+      buildAdminWelcomeText(),
+      "",
+      "برای مدیریت سریع از دکمه‌های پایین صفحه استفاده کنید؛ لینک‌های مستقیم پنل در پیام بعدی است.",
+    ].join("\n"),
+    { reply_markup: buildAdminReplyKeyboardMarkup() },
+  );
+  await sendAdminPlainTextMessage("لینک‌های سریع به پنل:", {
+    reply_markup: buildAdminMenuReplyMarkup(),
+  });
 }
 
 export async function sendPaymentToTelegram(params: {

@@ -4,17 +4,27 @@ import { sendConversationMessage } from "@/lib/chat";
 import {
   answerTelegramCallbackSafe,
   buildAdminMenuReplyMarkup,
+  buildAdminReplyKeyboardMarkup,
   buildAdminWelcomeText,
+  buildReplyKeyboardRemove,
   editTelegramMessage,
   fetchTelegramWebhookInfo,
   getTelegramAdminChatIdNormalized,
   getTelegramWebhookSecretNormalized,
+  sendAdminOnboardingKeyboardBundle,
   sendAdminPaymentOutcomeMessage,
   sendAdminPlainTextMessage,
+  TELEGRAM_ADMIN_REPLY_LABELS,
   validateTelegramSecret,
 } from "@/lib/telegram";
 import { reviewPayment } from "@/lib/orders";
-import { getAdminOverview } from "@/lib/queries";
+import { buildTelegramDailyReportText } from "@/lib/telegram-daily-report";
+import {
+  formatOpenConversationsForTelegram,
+  formatPendingPaymentsForTelegram,
+  formatWaitingAccountOrdersForTelegram,
+  getAdminOverview,
+} from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +67,103 @@ function isInboundTelegramAdmin(message: TelegramInboundMessage) {
   return chatId === adminChatId || fromId === adminChatId;
 }
 
+const ADMIN_REPLY_LABEL_SET = new Set<string>(Object.values(TELEGRAM_ADMIN_REPLY_LABELS));
+
+/** دکمه‌های پایین صفحه (Reply Keyboard) — قبل از دستورات / و قبل از Reply به رسید/چت. */
+async function handleTelegramAdminReplyKeyboard(message: TelegramInboundMessage): Promise<boolean> {
+  if (!isInboundTelegramAdmin(message) || message.from?.is_bot) {
+    return false;
+  }
+
+  if (message.reply_to_message != null) {
+    return false;
+  }
+
+  const text = message.text?.trim();
+  if (!text || !ADMIN_REPLY_LABEL_SET.has(text)) {
+    return false;
+  }
+
+  const L = TELEGRAM_ADMIN_REPLY_LABELS;
+
+  if (text === L.CLOSE_KB) {
+    await sendAdminPlainTextMessage(
+      "دکمه‌های پایین بسته شد. با /start یا دکمهٔ «منو / راهنما» زیر رسید دوباره باز کنید.",
+      { reply_markup: buildReplyKeyboardRemove() },
+    );
+    return true;
+  }
+
+  if (text === L.LINKS) {
+    await sendAdminPlainTextMessage("لینک‌های سریع به پنل:", {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.HELP) {
+    await sendAdminPlainTextMessage(buildAdminWelcomeText(), {
+      reply_markup: buildAdminReplyKeyboardMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.REFRESH) {
+    await sendAdminOnboardingKeyboardBundle();
+    return true;
+  }
+
+  if (text === L.STATUS) {
+    const overview = await getAdminOverview();
+    const body = [
+      "📌 وضعیت لحظه‌ای",
+      `پرداخت در انتظار: ${overview.pendingPayments}`,
+      `سفارش در انتظار اکانت: ${overview.waitingForAccountOrders}`,
+      `گفتگوی باز: ${overview.openConversations}`,
+      `خوانده‌نشده ادمین: ${overview.unreadAdminChats}`,
+      `حساب آماده: ${overview.availableAccounts} / ${overview.totalAccounts}`,
+    ].join("\n");
+    await sendAdminPlainTextMessage(body, {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.REPORT_FULL) {
+    const full = await buildTelegramDailyReportText();
+    await sendAdminPlainTextMessage(full.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.PENDING_PAYMENTS) {
+    const s = await formatPendingPaymentsForTelegram();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.WAITING_ACCOUNT) {
+    const s = await formatWaitingAccountOrdersForTelegram();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (text === L.OPEN_CHATS) {
+    const s = await formatOpenConversationsForTelegram();
+    await sendAdminPlainTextMessage(s.slice(0, 4090), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  return false;
+}
+
 async function handleTelegramAdminCommands(message: TelegramInboundMessage): Promise<boolean> {
   if (!isInboundTelegramAdmin(message) || message.from?.is_bot) {
     return false;
@@ -71,7 +178,12 @@ async function handleTelegramAdminCommands(message: TelegramInboundMessage): Pro
   const cmd = first.replace(/@\w+$/, "");
 
   if (cmd === "/start" || cmd === "/help" || cmd === "/menu") {
-    await sendAdminPlainTextMessage(buildAdminWelcomeText(), {
+    await sendAdminOnboardingKeyboardBundle();
+    return true;
+  }
+
+  if (cmd === "/links") {
+    await sendAdminPlainTextMessage("لینک‌های سریع به پنل:", {
       reply_markup: buildAdminMenuReplyMarkup(),
     });
     return true;
@@ -252,9 +364,12 @@ export async function POST(request: Request) {
 
   if (body.message && !body.callback_query) {
     try {
-      const handledCommand = await handleTelegramAdminCommands(body.message);
-      if (!handledCommand) {
-        await handleTelegramAdminTextReply(body.message);
+      const handledKeyboard = await handleTelegramAdminReplyKeyboard(body.message);
+      if (!handledKeyboard) {
+        const handledCommand = await handleTelegramAdminCommands(body.message);
+        if (!handledCommand) {
+          await handleTelegramAdminTextReply(body.message);
+        }
       }
     } catch (error) {
       console.error("[telegram webhook] chat reply failed:", error);
@@ -285,9 +400,7 @@ export async function POST(request: Request) {
   if (callback.data === "admin_menu") {
     await answerTelegramCallbackSafe(callback.id, "منو ارسال شد.");
     try {
-      await sendAdminPlainTextMessage(buildAdminWelcomeText(), {
-        reply_markup: buildAdminMenuReplyMarkup(),
-      });
+      await sendAdminOnboardingKeyboardBundle();
     } catch (error) {
       console.error("[telegram webhook] admin_menu failed:", error);
     }

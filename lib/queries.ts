@@ -834,6 +834,85 @@ export async function getAdminOverview() {
   };
 }
 
+const telegramTomanFormatter = new Intl.NumberFormat("fa-IR");
+
+/** خلاصهٔ متنی پرداخت‌های در انتظار برای ربات تلگرام */
+export async function formatPendingPaymentsForTelegram(limit = 8): Promise<string> {
+  const rows = await prisma.payment.findMany({
+    where: { status: PaymentStatus.PENDING },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: {
+      order: {
+        include: {
+          user: { select: { name: true } },
+          plan: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  if (rows.length === 0) {
+    return "پرداخت در انتظار بررسی ندارید.";
+  }
+
+  const lines = rows.map((p, i) => {
+    const amount = telegramTomanFormatter.format(Number(p.amount));
+    return `${i + 1}. ${p.order.user.name} — ${p.order.plan.name} — ${amount} تومان — پیگیری: ${p.trackingCode} — سفارش: ${p.order.id}`;
+  });
+
+  return ["⏳ پرداخت‌های در انتظار بررسی:", "", ...lines].join("\n");
+}
+
+/** خلاصهٔ سفارش‌های در انتظار اکانت برای ربات تلگرام */
+export async function formatWaitingAccountOrdersForTelegram(limit = 6): Promise<string> {
+  const rows = await prisma.order.findMany({
+    where: { status: "WAITING_FOR_ACCOUNT" },
+    orderBy: { updatedAt: "desc" },
+    take: limit,
+    include: {
+      user: { select: { name: true } },
+      plan: { select: { name: true } },
+    },
+  });
+
+  if (rows.length === 0) {
+    return "سفارشی با وضعیت «در انتظار اکانت» ندارید.";
+  }
+
+  const lines = rows.map(
+    (o, i) => `${i + 1}. ${o.user.name} — ${o.plan.name} — سفارش: ${o.id}`,
+  );
+
+  return ["📦 سفارش‌های در انتظار تخصیص اکانت:", "", ...lines].join("\n");
+}
+
+/** خلاصهٔ چت‌های باز برای ربات تلگرام */
+export async function formatOpenConversationsForTelegram(limit = 6): Promise<string> {
+  const rows = await prisma.conversation.findMany({
+    where: { status: "OPEN" },
+    orderBy: [{ unreadByAdmin: "desc" }, { lastMessageAt: "desc" }],
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      unreadByAdmin: true,
+      user: { select: { name: true } },
+    },
+  });
+
+  if (rows.length === 0) {
+    return "چت باز فعالی ندارید.";
+  }
+
+  const lines = rows.map((c, i) => {
+    const unread = c.unreadByAdmin > 0 ? ` — خوانده‌نشده ادمین: ${c.unreadByAdmin}` : "";
+    return `${i + 1}. ${c.user.name} — ${c.title || "بدون عنوان"}${unread} — گفتگو: ${c.id}`;
+  });
+
+  return ["💬 چت‌های باز (خلاصه):", "", ...lines].join("\n");
+}
+
 export async function getAdminUsers() {
   const users = await prisma.user.findMany({
     include: {
