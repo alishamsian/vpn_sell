@@ -12,31 +12,36 @@ import {
 } from "@/lib/telegram";
 
 async function getRequestOrigin() {
+  // Prefer Vercel-provided production hostname to avoid localhost misconfig.
+  // (Server Actions may not always expose forwarded headers.)
+  const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (prod) {
+    return `https://${prod.replace(/\/$/, "")}`;
+  }
+
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) {
+    return `https://${vercel.replace(/\/$/, "")}`;
+  }
+
   const maybe = headers();
   // Next 16: headers() might be async depending on runtime typing.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const h = (await (maybe as any)) as any;
   const getHeader = (name: string) => (h?.get?.(name) as string | null | undefined) ?? null;
-
   const proto = getHeader("x-forwarded-proto") ?? "https";
   const host = getHeader("x-forwarded-host") ?? getHeader("host") ?? "";
-  if (!host) {
-    // Fallbacks for environments where forwarded headers aren't available
-    const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
-    if (explicit) {
-      return explicit.replace(/\/$/, "");
-    }
-    const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-    if (prod) {
-      return `https://${prod.replace(/\/$/, "")}`;
-    }
-    const vercel = process.env.VERCEL_URL?.trim();
-    if (vercel) {
-      return `https://${vercel.replace(/\/$/, "")}`;
-    }
-    return "";
+  if (host) {
+    return `${proto}://${host}`;
   }
-  return `${proto}://${host}`;
+
+  // Last resort: NEXT_PUBLIC_APP_URL (but this might be localhost in prod if misconfigured)
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+
+  return "";
 }
 
 export async function setWebhookFromAdminAction(

@@ -19,6 +19,9 @@ export default async function AdminTelegramPage() {
   const configured = isTelegramConfigured();
   const adminChatId = getTelegramAdminChatIdNormalized() ?? null;
   const info = await fetchTelegramWebhookInfo();
+  const prodUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : null;
 
   const statusPill = configured
     ? info.ok
@@ -39,6 +42,14 @@ export default async function AdminTelegramPage() {
         title="تنظیم وب‌هوک"
         description="این دکمه وب‌هوک را روی همین دامنه (production) ست می‌کند و allowed_updates را روی callback_query و message می‌گذارد."
       >
+        {prodUrl ? (
+          <div className="mb-3 rounded-2xl border border-stroke bg-inset px-4 py-3 text-xs text-prose">
+            دامنهٔ پروداکشن تشخیص داده‌شده:{" "}
+            <span className="font-mono text-[11px]" dir="ltr">
+              {prodUrl}
+            </span>
+          </div>
+        ) : null}
         <WebhookControls />
       </AdminSectionCard>
 
