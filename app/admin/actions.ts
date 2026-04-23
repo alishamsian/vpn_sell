@@ -373,7 +373,7 @@ export async function reviewPaymentAction(
           ? result.order.status === "WAITING_FOR_ACCOUNT"
             ? "پرداخت تایید شد و سفارش در انتظار تخصیص اکانت قرار گرفت."
             : "پرداخت تایید شد و اکانت تحویل گردید."
-          : "پرداخت رد شد.",
+          : "پرداخت رد شد؛ دلیل برای کاربر ذخیره شد و می‌تواند رسید جدید بفرستد.",
     };
   } catch (error) {
     return {

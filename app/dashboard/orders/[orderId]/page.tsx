@@ -79,13 +79,40 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
     payable: Number(order.amount),
     walletPayableWith20Percent: Math.floor(Number(order.subtotalAmount) * 0.8),
   };
-  const canPayNow = order.status === "PENDING_PAYMENT" && !order.payment;
+  const canPayNow =
+    order.status === "PENDING_PAYMENT" &&
+    (!order.payment || order.payment.status === "REJECTED");
+  const paymentRejectionReason =
+    order.payment?.status === "REJECTED" ? (order.payment.reviewNote?.trim() || null) : null;
 
   return (
     <div className="space-y-8">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <section className="space-y-6">
           {order.expiresAt ? <SubscriptionNoticeCard expiresAt={order.expiresAt} /> : null}
+
+          {order.payment?.status === "REJECTED" ? (
+            <div
+              id="order-payment"
+              className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 shadow-soft dark:border-rose-800/50 dark:bg-rose-950/35"
+              role="alert"
+            >
+              <h2 className="text-base font-semibold text-rose-950 dark:text-rose-100">رسید پرداخت رد شد</h2>
+              {paymentRejectionReason ? (
+                <p className="mt-2 text-sm leading-7 text-rose-900/95 dark:text-rose-100/90">
+                  <span className="font-medium text-rose-950 dark:text-rose-50">دلیل اعلام‌شده از پشتیبان:</span>{" "}
+                  {paymentRejectionReason}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm leading-7 text-rose-900/95 dark:text-rose-100/90">
+                  رسید قبلی رد شده است. لطفاً با دکمهٔ زیر رسید جدید و درست ارسال کنید.
+                </p>
+              )}
+              <p className="mt-2 text-xs leading-6 text-rose-800/90 dark:text-rose-200/80">
+                می‌توانید مبلغ و روش پرداخت را دوباره بررسی کنید و تصویر رسید واضح‌تر آپلود کنید.
+              </p>
+            </div>
+          ) : null}
 
           <OrderProductShowcase
             orderId={order.id}
@@ -107,8 +134,9 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                   <PaymentFlowModal
                     orderId={order.id}
                     paymentRejected={order.payment?.status === "REJECTED"}
+                    rejectionReason={paymentRejectionReason}
                     statusLabel={order.payment ? translatePaymentStatus(order.payment.status) : "در انتظار پرداخت"}
-                    triggerLabel={order.payment?.status === "REJECTED" ? "پرداخت مجدد" : "پرداخت و ادامه"}
+                    triggerLabel={order.payment?.status === "REJECTED" ? "پرداخت مجدد و ارسال رسید" : "پرداخت و ادامه"}
                     triggerClassName="btn-brand w-full rounded-2xl py-3 text-base font-semibold shadow-lg shadow-black/20 hover:shadow-xl"
                     pricing={pricing}
                     card={{ holder: cardHolder, number: cardNumber, bank: bankName }}
@@ -265,8 +293,9 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
             <PaymentFlowModal
               orderId={order.id}
               paymentRejected={order.payment?.status === "REJECTED"}
+              rejectionReason={paymentRejectionReason}
               statusLabel={order.payment ? translatePaymentStatus(order.payment.status) : "در انتظار پرداخت"}
-              triggerLabel="پرداخت"
+              triggerLabel={order.payment?.status === "REJECTED" ? "ارسال دوباره رسید" : "پرداخت"}
               triggerClassName="btn-brand w-full rounded-2xl py-3 text-base font-semibold"
               pricing={pricing}
               card={{ holder: cardHolder, number: cardNumber, bank: bankName }}
@@ -386,9 +415,12 @@ function buildOrderProgress({
       badge: "مرحله ۲ از ۴",
       summary: "برای جلو رفتن سفارش، فقط ثبت رسید باقی مانده است.",
       nextTitle: "رسید را ثبت کن",
-      nextDescription: "هرچه زودتر رسید واضح و کامل ثبت شود، سفارش سریع‌تر وارد بررسی می‌شود.",
+      nextDescription:
+        paymentStatus === "REJECTED"
+          ? "دلیل رد در کادر قرمز بالای صفحه آمده است؛ با دکمهٔ پرداخت مجدد رسید اصلاح‌شده را ارسال کنید."
+          : "هرچه زودتر رسید واضح و کامل ثبت شود، سفارش سریع‌تر وارد بررسی می‌شود.",
       ctaLabel: paymentStatus === "REJECTED" ? "ثبت رسید جدید" : "ثبت رسید پرداخت",
-      ctaHref: "#payment-proof",
+      ctaHref: "#order-payment",
       steps,
     };
   }

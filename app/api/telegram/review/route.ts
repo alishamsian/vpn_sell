@@ -9,6 +9,8 @@ import {
 import { reviewPayment } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 type TelegramInboundMessage = {
   message_id?: number;
   chat?: { id: number };
@@ -36,7 +38,7 @@ type TelegramUpdate = {
 };
 
 async function handleTelegramAdminTextReply(message: TelegramInboundMessage) {
-  const allowedChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  const allowedChatId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim();
   if (!allowedChatId || !message.chat?.id || String(message.chat.id) !== allowedChatId) {
     return;
   }
@@ -79,12 +81,41 @@ async function handleTelegramAdminTextReply(message: TelegramInboundMessage) {
   });
 }
 
+function isTelegramAdminActor(callback: NonNullable<TelegramUpdate["callback_query"]>) {
+  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim();
+  if (!adminChatId) {
+    return false;
+  }
+  const messageChatId =
+    callback.message?.chat?.id != null ? String(callback.message.chat.id) : "";
+  const fromUserId = callback.from?.id != null ? String(callback.from.id) : "";
+  return messageChatId === adminChatId || fromUserId === adminChatId;
+}
+
 export async function POST(request: Request) {
-  if (!validateTelegramSecret(request)) {
-    return NextResponse.json({ ok: false }, { status: 401 });
+  let body: TelegramUpdate;
+  try {
+    body = (await request.json()) as TelegramUpdate;
+  } catch {
+    return NextResponse.json({ ok: false }, { status: 400 });
   }
 
-  const body = (await request.json()) as TelegramUpdate;
+  const secretOk = validateTelegramSecret(request);
+  if (!secretOk) {
+    const cb = body.callback_query;
+    if (cb?.id) {
+      try {
+        await answerTelegramCallback(
+          cb.id,
+          "توکن وب‌هوک با سرور یکی نیست. در Vercel TELEGRAM_WEBHOOK_SECRET را با secret_token در setWebhook هماهنگ کنید.",
+          { showAlert: true },
+        );
+      } catch (error) {
+        console.error("[telegram webhook] secret mismatch, answerCallback failed:", error);
+      }
+    }
+    return NextResponse.json({ ok: false }, { status: 401 });
+  }
 
   if (body.message && !body.callback_query) {
     try {
@@ -97,28 +128,47 @@ export async function POST(request: Request) {
 
   const callback = body.callback_query;
 
-  if (!callback?.id || !callback.data || !callback.message?.chat?.id || !callback.message.message_id) {
+  if (!callback?.id) {
     return NextResponse.json({ ok: true });
   }
 
-  const allowedChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!callback.data || !callback.message?.chat?.id || callback.message.message_id == null) {
+    try {
+      await answerTelegramCallback(callback.id, "داده دکمه ناقص است.", { showAlert: true });
+    } catch (error) {
+      console.error("[telegram webhook] invalid callback payload:", error);
+    }
+    return NextResponse.json({ ok: true });
+  }
 
-  if (!allowedChatId || String(callback.message.chat.id) !== allowedChatId) {
-    await answerTelegramCallback(callback.id, "اجازه دسترسی ندارید.");
+  if (!isTelegramAdminActor(callback)) {
+    try {
+      await answerTelegramCallback(
+        callback.id,
+        "فقط ادمین مجاز است. TELEGRAM_ADMIN_CHAT_ID باید آیدی همین چت یا آیدی تلگرام شما باشد.",
+        { showAlert: true },
+      );
+    } catch (error) {
+      console.error("[telegram webhook] forbidden answer failed:", error);
+    }
     return NextResponse.json({ ok: true });
   }
 
   const [decision, paymentId] = callback.data.split(":");
 
   if (!paymentId || (decision !== "approve" && decision !== "reject")) {
-    await answerTelegramCallback(callback.id, "داده نامعتبر است.");
+    try {
+      await answerTelegramCallback(callback.id, "داده دکمه نامعتبر است.", { showAlert: true });
+    } catch (error) {
+      console.error("[telegram webhook] bad callback data:", error);
+    }
     return NextResponse.json({ ok: true });
   }
 
   try {
     const result = await reviewPayment({
       paymentId,
-      decision,
+      decision: decision as "approve" | "reject",
       source: "TELEGRAM",
       reviewNote: decision === "approve" ? "تایید از تلگرام" : "رد از تلگرام",
       actorId: callback.from?.id ? String(callback.from.id) : undefined,
@@ -149,24 +199,31 @@ export async function POST(request: Request) {
         `وضعیت: ${decision === "approve" ? "تایید شد" : "رد شد"}`,
       ].join("\n");
 
-      await editTelegramMessage({
-        chatId: String(callback.message.chat.id),
-        messageId: callback.message.message_id,
-        caption: baseCaption,
-      });
+      try {
+        await editTelegramMessage({
+          chatId: String(callback.message.chat.id),
+          messageId: callback.message.message_id,
+          caption: baseCaption.slice(0, 1024),
+        });
+      } catch (editError) {
+        console.error("[telegram webhook] editMessageCaption failed:", editError);
+      }
     }
 
     await answerTelegramCallback(
       callback.id,
       decision === "approve"
-        ? `پرداخت تایید شد و ${result.config ? "کانفیگ تخصیص یافت." : "سفارش نهایی شد."}`
-        : "پرداخت رد شد.",
+        ? `پرداخت تایید شد.${result.config ? " کانفیگ تخصیص یافت." : ""}`
+        : "پرداخت رد شد؛ کاربر می‌تواند رسید جدید بفرستد.",
     );
   } catch (error) {
-    await answerTelegramCallback(
-      callback.id,
-      error instanceof Error ? error.message : "خطا در بررسی پرداخت",
-    );
+    const msg = error instanceof Error ? error.message : "خطا در بررسی پرداخت";
+    console.error("[telegram webhook] reviewPayment failed:", error);
+    try {
+      await answerTelegramCallback(callback.id, msg.slice(0, 180), { showAlert: true });
+    } catch (answerError) {
+      console.error("[telegram webhook] answerCallback after error failed:", answerError);
+    }
   }
 
   return NextResponse.json({ ok: true });

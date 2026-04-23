@@ -114,7 +114,11 @@
 
 | متغیر |
 |--------|
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, `TELEGRAM_WEBHOOK_SECRET` |
+| `TELEGRAM_BOT_TOKEN` |
+| `TELEGRAM_ADMIN_CHAT_ID` |
+| `TELEGRAM_WEBHOOK_SECRET` |
+
+`TELEGRAM_ADMIN_CHAT_ID` باید **آیدی عددی خودتان به‌عنوان کاربر** (مثلاً از [@userinfobot](https://t.me/userinfobot)) یا آیدی **گروه**ی باشد که ربات در آن عضو است؛ **نه** آیدی ربات و **نه** چتی که طرفش فقط ربات است — در غیر این صورت تلگرام می‌گوید: *Forbidden: bots can't send messages to bots*.
 
 ### اختیاری Prisma (timeout)
 
@@ -227,7 +231,7 @@ npm run seed
 
 برای اینکه **پیام کاربران در چت سایت** به تلگرام شما برسد و بتوانید با **Reply** روی همان پیام جواب را در سایت ثبت کنید:
 
-1. همان envهای `TELEGRAM_BOT_TOKEN`، `TELEGRAM_ADMIN_CHAT_ID`، `TELEGRAM_WEBHOOK_SECRET` و **`NEXT_PUBLIC_APP_URL`** را در Vercel بگذارید.
+1. همان envهای `TELEGRAM_BOT_TOKEN`، `TELEGRAM_ADMIN_CHAT_ID`، **`TELEGRAM_WEBHOOK_SECRET`** (برای امنیت توصیه می‌شود؛ اگر در `setWebhook` فیلد `secret_token` نگذاشتید، در Vercel هم خالی بگذارید تا دکمه‌های تایید/رد کار کنند) و **`NEXT_PUBLIC_APP_URL`** را در Vercel بگذارید.
 2. روی دیتابیس production حتماً migration مربوط به فیلد `telegramBridgeMessageId` روی جدول `Message` اعمال شده باشد (`npx prisma migrate deploy`).
 3. Webhook را دوباره با **`allowed_updates`** شامل پیام و callback تنظیم کنید (یک بار کافی است):
 

@@ -219,7 +219,7 @@ export async function repricePendingOrder(params: {
         planId: true,
         subtotalAmount: true,
         amount: true,
-        payment: { select: { id: true } },
+        payment: { select: { id: true, status: true } },
       },
     });
 
@@ -231,7 +231,7 @@ export async function repricePendingOrder(params: {
       throw new Error("برای این سفارش امکان تغییر مبلغ وجود ندارد.");
     }
 
-    if (order.payment) {
+    if (order.payment && order.payment.status !== PaymentStatus.REJECTED) {
       throw new Error("برای این سفارش پرداخت/رسید ثبت شده است.");
     }
 
@@ -382,8 +382,12 @@ export async function payOrderWithWallet(params: { orderId: string; userId: stri
         throw new Error("این سفارش در وضعیت قابل پرداخت با کیف‌پول نیست.");
       }
 
-      if (order.payment) {
+      if (order.payment && order.payment.status !== PaymentStatus.REJECTED) {
         throw new Error("برای این سفارش رسید/پرداخت ثبت شده است.");
+      }
+
+      if (order.payment?.status === PaymentStatus.REJECTED) {
+        await tx.payment.delete({ where: { id: order.payment.id } });
       }
 
       // اگر کاربر قبلاً کوپن/بن/کیف‌پول را اعمال کرده باشد، در پرداخت ولتی
@@ -1008,6 +1012,11 @@ export async function reviewPayment(params: {
   reviewNote?: string;
   actorId?: string;
 }) {
+  const trimmedReviewNote = (params.reviewNote ?? "").trim();
+  if (params.decision === "reject" && params.source === "ADMIN_PANEL" && trimmedReviewNote.length < 3) {
+    throw new Error("برای رد پرداخت، توضیح علت برای کاربر الزامی است (حداقل ۳ نویسه).");
+  }
+
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
     try {
       return await prisma.$transaction(
@@ -1038,6 +1047,7 @@ export async function reviewPayment(params: {
           }
 
           if (params.decision === "reject") {
+            const rejectNote = trimmedReviewNote || "پرداخت رد شد.";
             const rejected = await tx.payment.update({
               where: {
                 id: payment.id,
@@ -1045,7 +1055,7 @@ export async function reviewPayment(params: {
               data: {
                 status: "REJECTED",
                 reviewSource: params.source,
-                reviewNote: params.reviewNote ?? "پرداخت رد شد.",
+                reviewNote: rejectNote,
                 reviewedAt: new Date(),
               },
             });
@@ -1098,7 +1108,9 @@ export async function reviewPayment(params: {
               orderId: payment.orderId,
               type: "PAYMENT_REJECTED",
               title: "پرداخت شما رد شد",
-              message: params.reviewNote ?? "پرداخت ثبت‌شده رد شد و لازم است دوباره رسید را ثبت کنید.",
+              message: trimmedReviewNote
+                ? `دلیل رد: ${trimmedReviewNote}\n\nاز صفحهٔ همین سفارش می‌توانید رسید اصلاح‌شده را دوباره ثبت کنید.`
+                : "پرداخت ثبت‌شده رد شد. از صفحهٔ همین سفارش رسید جدید ارسال کنید.",
             });
 
             await createPaymentAuditLog(tx, {
@@ -1106,7 +1118,7 @@ export async function reviewPayment(params: {
               action: "REJECTED",
               actorType: params.source === "TELEGRAM" ? "TELEGRAM" : "ADMIN",
               actorId: params.actorId,
-              message: params.reviewNote ?? "پرداخت رد شد.",
+              message: rejectNote,
               metadata: {
                 source: params.source,
                 orderId: payment.orderId,

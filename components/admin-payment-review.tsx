@@ -37,12 +37,21 @@ export function AdminPaymentReview({ paymentId, status }: AdminPaymentReviewProp
   return (
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="paymentId" value={paymentId} />
-      <textarea
-        name="reviewNote"
-        rows={3}
-        placeholder="یادداشت برای کاربر یا توضیح ادمین"
-        className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 text-sm outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
-      />
+      <div className="space-y-1.5">
+        <label htmlFor={`review-note-${paymentId}`} className="text-xs font-medium text-prose">
+          یادداشت بررسی
+        </label>
+        <textarea
+          id={`review-note-${paymentId}`}
+          name="reviewNote"
+          rows={3}
+          placeholder="برای تایید: اختیاری. برای رد پرداخت: الزامی — دلیل را برای کاربر بنویسید (مثلاً تصویر نامشخص، مبلغ نادرست، …)."
+          className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 text-sm outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
+        />
+        <p className="text-[11px] leading-5 text-faint">
+          با «رد پرداخت» حداقل ۳ نویسه توضیح لازم است؛ همان متن در داشبورد کاربر و اعلان سایت نشان داده می‌شود.
+        </p>
+      </div>
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"

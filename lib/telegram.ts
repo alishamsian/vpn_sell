@@ -30,6 +30,20 @@ export function isTelegramConfigured() {
   return Boolean(botToken && adminChatId);
 }
 
+function humanizeTelegramApiError(description: string): string {
+  const lower = description.toLowerCase();
+
+  if (lower.includes("bots can't send messages to bots")) {
+    return [
+      "تلگرام: ربات‌ها نمی‌توانند به ربات دیگر پیام بفرستند.",
+      "مقدار TELEGRAM_ADMIN_CHAT_ID باید آیدی عددی «شخص شما» (ادمین انسان) یا یک «گروه/کانال» باشد که ربات عضو آن است؛",
+      "نه توکن ربات و نه چت با خودِ ربات. آیدی خود را از ربات‌هایی مثل @userinfobot بگیرید و در env بگذارید.",
+    ].join(" ");
+  }
+
+  return description;
+}
+
 async function telegramRequest<T>(method: string, body: BodyInit, isFormData = false): Promise<T> {
   const response = await fetch(getTelegramApiUrl(method), {
     method: "POST",
@@ -40,7 +54,8 @@ async function telegramRequest<T>(method: string, body: BodyInit, isFormData = f
   const payload = (await response.json()) as { ok: boolean; result?: T; description?: string };
 
   if (!response.ok || !payload.ok || !payload.result) {
-    throw new Error(payload.description ?? "درخواست تلگرام ناموفق بود.");
+    const raw = payload.description ?? "درخواست تلگرام ناموفق بود.";
+    throw new Error(humanizeTelegramApiError(raw));
   }
 
   return payload.result;
@@ -290,13 +305,17 @@ export async function sendPaymentToTelegram(params: {
   }
 }
 
-export async function answerTelegramCallback(callbackQueryId: string, text: string) {
+export async function answerTelegramCallback(
+  callbackQueryId: string,
+  text: string,
+  options?: { showAlert?: boolean },
+) {
   await telegramRequest(
     "answerCallbackQuery",
     JSON.stringify({
       callback_query_id: callbackQueryId,
-      text,
-      show_alert: false,
+      text: text.slice(0, 200),
+      show_alert: Boolean(options?.showAlert),
     }),
   );
 }
@@ -319,11 +338,15 @@ export async function editTelegramMessage(params: {
   );
 }
 
+/**
+ * اگر TELEGRAM_WEBHOOK_SECRET در env خالی باشد، هدر را چک نمی‌کنیم تا وب‌هوک بدون secret_token در BotFather هم کار کند.
+ * برای production توصیه می‌شود secret را حتماً ست و در setWebhook بفرستید.
+ */
 export function validateTelegramSecret(request: Request) {
   const expected = getTelegramConfig().secretToken;
 
   if (!expected) {
-    return false;
+    return true;
   }
 
   return request.headers.get("x-telegram-bot-api-secret-token") === expected;

@@ -15,6 +15,8 @@ import { formatPrice } from "@/lib/format";
 type PaymentFlowModalProps = {
   orderId: string;
   paymentRejected: boolean;
+  /** دلیل رد از طرف ادمین (در صورت خالی، فقط متن عمومی نشان داده می‌شود) */
+  rejectionReason?: string | null;
   statusLabel: string;
   triggerLabel?: string;
   triggerClassName?: string;
@@ -87,9 +89,11 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
     [payableRial],
   );
 
-  const title = props.paymentRejected ? "اصلاح و پرداخت مجدد" : "پرداخت سفارش";
+  const title = props.paymentRejected ? "اصلاح و ارسال دوباره رسید" : "پرداخت سفارش";
   const subtitle = props.paymentRejected
-    ? "رسید قبلی رد شده است. مبلغ را بررسی کنید و روش پرداخت را انتخاب کنید."
+    ? props.rejectionReason
+      ? "رسید قبلی رد شده است. دلیل را بخوانید، مبلغ را بررسی کنید و رسید جدید بفرستید."
+      : "رسید قبلی رد شده است. مبلغ را بررسی کنید و روش پرداخت را انتخاب کنید."
     : "مبلغ را بررسی کنید، گزینه‌ها را اعمال کنید و سپس روش پرداخت را انتخاب کنید.";
 
   const canUseWalletPay = useMemo(() => props.pricing.walletPayableWith20Percent > 0, [props.pricing.walletPayableWith20Percent]);
@@ -150,6 +154,13 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
                 بستن
               </button>
             </div>
+
+            {props.paymentRejected && props.rejectionReason ? (
+              <div className="shrink-0 border-b border-rose-200/90 bg-rose-50 px-4 py-3 dark:border-rose-800/50 dark:bg-rose-950/35 sm:px-6">
+                <div className="text-xs font-semibold text-rose-950 dark:text-rose-100">دلیل رد از طرف پشتیبان</div>
+                <p className="mt-1 text-sm leading-7 text-rose-900/95 dark:text-rose-50/90">{props.rejectionReason}</p>
+              </div>
+            ) : null}
 
             <div className="shrink-0 border-b border-stroke/70 px-4 py-2 sm:px-6">
               <div className="flex gap-1 rounded-2xl bg-elevated p-1">
