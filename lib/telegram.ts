@@ -293,7 +293,6 @@ function buildInlineKeyboard(params: { paymentId: string; orderId: string }) {
         ...(paymentsUrl ? [{ text: "پنل پرداخت‌ها", url: paymentsUrl }] : []),
       ],
       ...(linkRow.length > 0 ? [linkRow] : []),
-      [{ text: "منو / راهنما", callback_data: "admin_menu" }],
     ].filter((row) => row.length > 0),
   };
 }
@@ -365,7 +364,7 @@ export function buildAdminWelcomeText() {
     "• از دکمه‌های پایین صفحه برای آمار، لیست‌ها و لینک همهٔ بخش‌های پنل استفاده کنید.",
     "• دکمهٔ «پنل کامل» همان UI وب ادمین را داخل تلگرام باز می‌کند (بعد از /setdomain در BotFather).",
     "",
-    "دستورات: /start /menu — منو کامل | /report — آمار | /panel — فقط لینک پنل",
+    "دستورات: /start یا /menu — منو | /report — آمار | /panel — دکمه‌های لینک پنل (فقط وقتی لازم داری)",
   ].join("\n");
 }
 
@@ -422,7 +421,6 @@ export function buildAdminFullPanelInlineMarkup(): {
         { text: "🔗 رفرال", url: u("/admin/referrals") },
         { text: "🤖 تلگرام", url: u("/admin/telegram") },
       ],
-      [{ text: "🔄 تازه‌سازی منو", callback_data: "admin_menu" }],
     ],
   };
 }
@@ -605,19 +603,16 @@ export async function sendAdminPlainTextMessage(
   return telegramRequest<TelegramMessage>("sendMessage", JSON.stringify(payload));
 }
 
-/** خوش‌آمد + Reply Keyboard و یک پیام جدا با لینک‌های اینلاین پنل. */
+/** خوش‌آمد + Reply Keyboard (بدون تکرار دکمهٔ اینلاین زیر هر پیام). */
 export async function sendAdminOnboardingKeyboardBundle() {
   await sendAdminPlainTextMessage(
     [
       buildAdminWelcomeText(),
       "",
-      "برای مدیریت سریع از دکمه‌های پایین صفحه استفاده کنید؛ لینک‌های مستقیم پنل در پیام بعدی است.",
+      "برای دکمه‌های لینک به همهٔ بخش‌های پنل دستور /panel را بفرستید.",
     ].join("\n"),
     { reply_markup: buildAdminReplyKeyboardMarkup() },
   );
-  await sendAdminPlainTextMessage("لینک‌های سریع به پنل:", {
-    reply_markup: buildAdminMenuReplyMarkup(),
-  });
 }
 
 export async function sendPaymentToTelegram(params: {
@@ -697,6 +692,7 @@ export async function sendAdminPaymentOutcomeMessage(params: {
 
   const lines = [
     "نتیجه بررسی پرداخت",
+    "────────────",
     `وضعیت: ${params.decision === "approve" ? "تایید شد" : "رد شد"}`,
     `سفارش: ${params.orderId}`,
     `کاربر: ${params.userName}`,
@@ -704,7 +700,9 @@ export async function sendAdminPaymentOutcomeMessage(params: {
     params.decision === "reject" && params.reviewNote ? `دلیل: ${params.reviewNote}` : null,
     "",
     paymentsLink ? `پنل پرداخت‌ها: ${paymentsLink}` : null,
-    telegramPanel ? `وب‌هوک/تنظیمات تلگرام: ${telegramPanel}` : null,
+    telegramPanel ? `تنظیمات تلگرام: ${telegramPanel}` : null,
+    "",
+    "برای منوی لینک‌ها: /panel",
   ].filter(Boolean);
 
   await sendAdminPlainTextMessage(lines.join("\n"));

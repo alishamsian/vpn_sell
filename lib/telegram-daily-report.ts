@@ -1,4 +1,10 @@
-import { getAdminOverview, getPlansWithInventory } from "@/lib/queries";
+import {
+  formatAdminOverviewForTelegram,
+  getAdminOverview,
+  getPlansWithInventory,
+} from "@/lib/queries";
+
+const TG_RULE = "────────────";
 
 /** متن خلاصه برای کرون روزانه یا نمایش دستی در تلگرام. */
 export async function buildTelegramDailyReportText(): Promise<string> {
@@ -11,19 +17,20 @@ export async function buildTelegramDailyReportText(): Promise<string> {
     timeStyle: "short",
   });
 
-  const lines = [
-    "📊 گزارش روزانه (خلاصه)",
-    `زمان (تهران): ${timeLabel}`,
-    `پرداخت در انتظار بررسی: ${overview.pendingPayments}`,
-    `سفارش در انتظار اکانت: ${overview.waitingForAccountOrders}`,
-    `گفتگوی باز: ${overview.openConversations}`,
-    `پیام خوانده‌نشده (سمت ادمین): ${overview.unreadAdminChats}`,
-    `حساب آماده فروش: ${overview.availableAccounts} از ${overview.totalAccounts}`,
-    `کاربران: ${overview.usersCount} | پلن‌ها: ${overview.totalPlans}`,
-    lowStock.length > 0
-      ? ["", "⚠️ موجودی کم:", ...lowStock.map((p) => `• ${p.name}: ${p.remainingCount} عدد`)].join("\n")
-      : null,
-  ].filter((x) => x != null && x !== "");
+  const overviewBlock = formatAdminOverviewForTelegram(overview, { title: "گزارش روزانه · کلیات" });
 
-  return lines.join("\n");
+  const lowStockBlock =
+    lowStock.length > 0
+      ? [
+          "",
+          "⚠️ موجودی کم پلن‌ها",
+          TG_RULE,
+          ...lowStock.map(
+            (p) =>
+              `• ${p.name}: ${new Intl.NumberFormat("fa-IR").format(p.remainingCount)} عدد آماده (≤۲)`,
+          ),
+        ].join("\n")
+      : "";
+
+  return [overviewBlock, "", `زمان گزارش (تهران): ${timeLabel}`, lowStockBlock].filter(Boolean).join("\n");
 }

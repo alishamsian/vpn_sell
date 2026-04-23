@@ -20,6 +20,7 @@ import {
 import { reviewPayment } from "@/lib/orders";
 import { buildTelegramDailyReportText } from "@/lib/telegram-daily-report";
 import {
+  formatAdminOverviewForTelegram,
   formatAdminReportsSnippetForTelegram,
   formatCatalogInventoryForTelegram,
   formatCouponsTelegramSummary,
@@ -96,14 +97,14 @@ async function handleTelegramAdminReplyKeyboard(message: TelegramInboundMessage)
 
   if (text === L.CLOSE_KB) {
     await sendAdminPlainTextMessage(
-      "دکمه‌های پایین بسته شد. با /start یا دکمهٔ «منو / راهنما» زیر رسید دوباره باز کنید.",
+      "دکمه‌های پایین بسته شد. با /start دوباره باز کنید.",
       { reply_markup: buildReplyKeyboardRemove() },
     );
     return true;
   }
 
   if (text === L.LINKS) {
-    await sendAdminPlainTextMessage("لینک‌های سریع به پنل:", {
+    await sendAdminPlainTextMessage("لینک همهٔ بخش‌های پنل:", {
       reply_markup: buildAdminMenuReplyMarkup(),
     });
     return true;
@@ -123,113 +124,79 @@ async function handleTelegramAdminReplyKeyboard(message: TelegramInboundMessage)
 
   if (text === L.STATUS) {
     const overview = await getAdminOverview();
-    const body = [
-      "📌 وضعیت لحظه‌ای",
-      `پرداخت در انتظار: ${overview.pendingPayments}`,
-      `سفارش در انتظار اکانت: ${overview.waitingForAccountOrders}`,
-      `گفتگوی باز: ${overview.openConversations}`,
-      `خوانده‌نشده ادمین: ${overview.unreadAdminChats}`,
-      `حساب آماده: ${overview.availableAccounts} / ${overview.totalAccounts}`,
-    ].join("\n");
-    await sendAdminPlainTextMessage(body, {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(formatAdminOverviewForTelegram(overview));
     return true;
   }
 
   if (text === L.REPORT_FULL) {
     const full = await buildTelegramDailyReportText();
-    await sendAdminPlainTextMessage(full.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(full.slice(0, 4090));
     return true;
   }
 
   if (text === L.PENDING_PAYMENTS) {
     const s = await formatPendingPaymentsForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
   if (text === L.WAITING_ACCOUNT) {
     const s = await formatWaitingAccountOrdersForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
   if (text === L.OPEN_CHATS) {
     const s = await formatOpenConversationsForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
   if (text === L.USERS) {
     const s = await formatRecentUsersForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
   if (text === L.WALLET_TOPUPS) {
     const s = await formatPendingWalletTopUpsForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
   if (text === L.CATALOG) {
     const s = await formatCatalogInventoryForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
   if (text === L.COUPONS) {
     const s = await formatCouponsTelegramSummary();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
   if (text === L.REPORTS_SITE) {
     const s = await formatAdminReportsSnippetForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
   if (text === L.WALLETS) {
     const s = await formatWalletsTelegramSummary();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
   if (text === L.GIFT_CARDS) {
     const s = await formatGiftCardsTelegramSummary();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
   if (text === L.REFERRALS) {
     const s = await formatReferralsTelegramSummary();
-    await sendAdminPlainTextMessage(s.slice(0, 4090), {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(s.slice(0, 4090));
     return true;
   }
 
@@ -263,17 +230,7 @@ async function handleTelegramAdminCommands(message: TelegramInboundMessage): Pro
 
   if (cmd === "/report") {
     const overview = await getAdminOverview();
-    const text = [
-      "📌 وضعیت لحظه‌ای",
-      `پرداخت در انتظار: ${overview.pendingPayments}`,
-      `سفارش در انتظار اکانت: ${overview.waitingForAccountOrders}`,
-      `گفتگوی باز: ${overview.openConversations}`,
-      `خوانده‌نشده ادمین: ${overview.unreadAdminChats}`,
-      `حساب آماده: ${overview.availableAccounts} / ${overview.totalAccounts}`,
-    ].join("\n");
-    await sendAdminPlainTextMessage(text, {
-      reply_markup: buildAdminMenuReplyMarkup(),
-    });
+    await sendAdminPlainTextMessage(formatAdminOverviewForTelegram(overview));
     return true;
   }
 

@@ -841,6 +841,37 @@ export async function getAdminOverview() {
 }
 
 const telegramTomanFormatter = new Intl.NumberFormat("fa-IR");
+const telegramDigitFormatter = new Intl.NumberFormat("fa-IR");
+const TG_RULE = "────────────";
+
+export type AdminOverviewTelegram = Awaited<ReturnType<typeof getAdminOverview>>;
+
+/** بلوک وضعیت کلی برای پیام تلگرام (بدون دکمه). */
+export function formatAdminOverviewForTelegram(
+  overview: AdminOverviewTelegram,
+  options?: { title?: string },
+): string {
+  const n = telegramDigitFormatter;
+  const title = options?.title ?? "وضعیت لحظه‌ای";
+  return [
+    `📌 ${title}`,
+    TG_RULE,
+    "۱) پرداخت · در انتظار بررسی",
+    `    ${n.format(overview.pendingPayments)}`,
+    "۲) پرداخت · تأیید شده / رد شده",
+    `    ${n.format(overview.approvedPayments)} / ${n.format(overview.rejectedPayments)}`,
+    "۳) سفارش · در انتظار تخصیص اکانت",
+    `    ${n.format(overview.waitingForAccountOrders)}`,
+    "۴) چت · گفتگوی باز",
+    `    ${n.format(overview.openConversations)}`,
+    "۵) چت · پیام خوانده‌نشده (سمت ادمین)",
+    `    ${n.format(overview.unreadAdminChats)}`,
+    "۶) اکانت · آماده فروش / کل",
+    `    ${n.format(overview.availableAccounts)} / ${n.format(overview.totalAccounts)}`,
+    "۷) کاربران / پلن‌ها",
+    `    ${n.format(overview.usersCount)} / ${n.format(overview.totalPlans)}`,
+  ].join("\n");
+}
 
 /** خلاصهٔ متنی پرداخت‌های در انتظار برای ربات تلگرام */
 export async function formatPendingPaymentsForTelegram(limit = 8): Promise<string> {
@@ -859,15 +890,23 @@ export async function formatPendingPaymentsForTelegram(limit = 8): Promise<strin
   });
 
   if (rows.length === 0) {
-    return "پرداخت در انتظار بررسی ندارید.";
+    return ["⏳ پرداخت در انتظار بررسی", TG_RULE, "موردی نیست."].join("\n");
   }
 
-  const lines = rows.map((p, i) => {
+  const blocks = rows.map((p, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
     const amount = telegramTomanFormatter.format(Number(p.amount));
-    return `${i + 1}. ${p.order.user.name} — ${p.order.plan.name} — ${amount} تومان — پیگیری: ${p.trackingCode} — سفارش: ${p.order.id}`;
+    return [
+      `${num})`,
+      `   کاربر: ${p.order.user.name}`,
+      `   پلن: ${p.order.plan.name}`,
+      `   مبلغ: ${amount} تومان`,
+      `   پیگیری: ${p.trackingCode}`,
+      `   سفارش: ${p.order.id}`,
+    ].join("\n");
   });
 
-  return ["⏳ پرداخت‌های در انتظار بررسی:", "", ...lines].join("\n");
+  return ["⏳ پرداخت در انتظار بررسی", TG_RULE, ...blocks].join("\n\n");
 }
 
 /** خلاصهٔ سفارش‌های در انتظار اکانت برای ربات تلگرام */
@@ -883,14 +922,15 @@ export async function formatWaitingAccountOrdersForTelegram(limit = 6): Promise<
   });
 
   if (rows.length === 0) {
-    return "سفارشی با وضعیت «در انتظار اکانت» ندارید.";
+    return ["📦 سفارش در انتظار اکانت", TG_RULE, "موردی نیست."].join("\n");
   }
 
-  const lines = rows.map(
-    (o, i) => `${i + 1}. ${o.user.name} — ${o.plan.name} — سفارش: ${o.id}`,
-  );
+  const blocks = rows.map((o, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
+    return [`${num})`, `   کاربر: ${o.user.name}`, `   پلن: ${o.plan.name}`, `   سفارش: ${o.id}`].join("\n");
+  });
 
-  return ["📦 سفارش‌های در انتظار تخصیص اکانت:", "", ...lines].join("\n");
+  return ["📦 سفارش در انتظار تخصیص اکانت", TG_RULE, ...blocks].join("\n\n");
 }
 
 /** خلاصهٔ چت‌های باز برای ربات تلگرام */
@@ -908,15 +948,23 @@ export async function formatOpenConversationsForTelegram(limit = 6): Promise<str
   });
 
   if (rows.length === 0) {
-    return "چت باز فعالی ندارید.";
+    return ["💬 چت‌های باز", TG_RULE, "موردی نیست."].join("\n");
   }
 
-  const lines = rows.map((c, i) => {
-    const unread = c.unreadByAdmin > 0 ? ` — خوانده‌نشده ادمین: ${c.unreadByAdmin}` : "";
-    return `${i + 1}. ${c.user.name} — ${c.title || "بدون عنوان"}${unread} — گفتگو: ${c.id}`;
+  const blocks = rows.map((c, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
+    const unread =
+      c.unreadByAdmin > 0 ? `خوانده‌نشده ادمین: ${telegramDigitFormatter.format(c.unreadByAdmin)}` : "بدون پیام خوانده‌نشده";
+    return [
+      `${num})`,
+      `   کاربر: ${c.user.name}`,
+      `   عنوان: ${c.title || "—"}`,
+      `   ${unread}`,
+      `   شناسه گفتگو: ${c.id}`,
+    ].join("\n");
   });
 
-  return ["💬 چت‌های باز (خلاصه):", "", ...lines].join("\n");
+  return ["💬 چت‌های باز", TG_RULE, ...blocks].join("\n\n");
 }
 
 /** شارژهای کیف در انتظار تایید برای تلگرام */
@@ -931,17 +979,25 @@ export async function formatPendingWalletTopUpsForTelegram(limit = 8): Promise<s
   });
 
   if (rows.length === 0) {
-    return "شارژ کیف‌پول در انتظار بررسی ندارید.";
+    return ["💳 شارژ کیف در انتظار", TG_RULE, "موردی نیست."].join("\n");
   }
 
   const fmt = telegramTomanFormatter;
-  const lines = rows.map((t, i) => {
+  const blocks = rows.map((t, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
     const who = t.user.phone ?? t.user.email ?? t.user.name;
     const amount = fmt.format(Number(t.amount));
-    return `${i + 1}. ${who} — ${amount} تومان — پیگیری: ${t.trackingCode} — شارژ: ${t.id}`;
+    return [
+      `${num})`,
+      `   کاربر: ${who}`,
+      `   مبلغ: ${amount} تومان`,
+      `   پیگیری: ${t.trackingCode}`,
+      `   ۴ رقم کارت: ${t.cardLast4}`,
+      `   شناسه شارژ: ${t.id}`,
+    ].join("\n");
   });
 
-  return ["💳 شارژ کیف در انتظار:", "", ...lines].join("\n");
+  return ["💳 شارژ کیف در انتظار", TG_RULE, ...blocks].join("\n\n");
 }
 
 /** آخرین کاربران ثبت‌نام‌شده */
@@ -960,30 +1016,43 @@ export async function formatRecentUsersForTelegram(limit = 10): Promise<string> 
   });
 
   if (rows.length === 0) {
-    return "کاربری ثبت نشده است.";
+    return ["🧑‍💼 آخرین کاربران", TG_RULE, "موردی نیست."].join("\n");
   }
 
-  const lines = rows.map((u, i) => {
-    const contact = u.phone ?? u.email ?? "-";
-    return `${i + 1}. ${u.name} (${u.role}) — ${contact} — id: ${u.id}`;
+  const blocks = rows.map((u, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
+    const contact = u.phone ?? u.email ?? "—";
+    return [
+      `${num})`,
+      `   نام: ${u.name}`,
+      `   نقش: ${u.role}`,
+      `   تماس: ${contact}`,
+      `   شناسه: ${u.id}`,
+    ].join("\n");
   });
 
-  return ["🧑‍💼 آخرین کاربران:", "", ...lines].join("\n");
+  return ["🧑‍💼 آخرین کاربران", TG_RULE, ...blocks].join("\n\n");
 }
 
 /** موجودی پلن‌ها (کاتالوگ) */
 export async function formatCatalogInventoryForTelegram(): Promise<string> {
   const plans = await getPlansWithInventory();
   if (plans.length === 0) {
-    return "پلنی در دیتابیس نیست.";
+    return ["📦 کاتالوگ و موجودی", TG_RULE, "پلنی ثبت نشده است."].join("\n");
   }
 
-  const lines = plans.map(
-    (p) =>
-      `• ${p.name}: ${p.remainingCount} آماده / ${p.soldCount} فروش رفته — قیمت ${telegramTomanFormatter.format(p.price)} تومان`,
-  );
+  const blocks = plans.map((p, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
+    const price = telegramTomanFormatter.format(p.price);
+    return [
+      `${num}) ${p.name}`,
+      `   موجودی آماده: ${telegramDigitFormatter.format(p.remainingCount)}`,
+      `   فروش رفته: ${telegramDigitFormatter.format(p.soldCount)}`,
+      `   قیمت: ${price} تومان`,
+    ].join("\n");
+  });
 
-  return ["📦 کاتالوگ و موجودی اکانت:", "", ...lines].join("\n");
+  return ["📦 کاتالوگ و موجودی", TG_RULE, ...blocks].join("\n\n");
 }
 
 /** خلاصهٔ کوپن‌ها */
@@ -1005,13 +1074,20 @@ export async function formatCouponsTelegramSummary(limit = 12): Promise<string> 
     },
   });
 
-  const lines = rows.map((c) => {
+  const summary = `${telegramDigitFormatter.format(activeCount)} فعال از ${telegramDigitFormatter.format(total)} کل`;
+
+  const blocks = rows.map((c, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
     const val = telegramTomanFormatter.format(Number(c.value));
     const state = c.isActive ? "فعال" : "غیرفعال";
-    return `• ${c.code} (${c.kind}) ${val} — ${state} — استفاده: ${c._count.redemptions}`;
+    return [
+      `${num}) کد: ${c.code}`,
+      `   نوع: ${c.kind} · مقدار: ${val} تومان`,
+      `   وضعیت: ${state} · تعداد استفاده: ${telegramDigitFormatter.format(c._count.redemptions)}`,
+    ].join("\n");
   });
 
-  return [`🎟 کوپن‌ها: ${activeCount} فعال از ${total} کل`, "", ...lines].join("\n");
+  return ["🎟 کوپن‌ها", TG_RULE, `خلاصه: ${summary}`, "", blocks.join("\n\n")].join("\n");
 }
 
 /** خلاصهٔ کارت هدیه */
@@ -1022,8 +1098,8 @@ export async function formatGiftCardsTelegramSummary(limit = 8): Promise<string>
   });
 
   const statusLine = grouped
-    .map((g) => `${g.status}: ${g._count._all}`)
-    .join(" | ");
+    .map((g) => `${g.status}: ${telegramDigitFormatter.format(g._count._all)}`)
+    .join(" · ");
 
   const rows = await prisma.giftCard.findMany({
     orderBy: { createdAt: "desc" },
@@ -1036,13 +1112,14 @@ export async function formatGiftCardsTelegramSummary(limit = 8): Promise<string>
     },
   });
 
-  const lines = rows.map((g) => {
+  const blocks = rows.map((g, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
     const bal = telegramTomanFormatter.format(Number(g.balance));
     const init = telegramTomanFormatter.format(Number(g.initialAmount));
-    return `• ${g.code} — مانده ${bal} / ${init} — ${g.status}`;
+    return [`${num}) کد: ${g.code}`, `   مانده: ${bal} / اولیه: ${init} تومان`, `   وضعیت: ${g.status}`].join("\n");
   });
 
-  return [`🎁 کارت هدیه (${statusLine || "—"})`, "", ...lines].join("\n");
+  return ["🎁 کارت هدیه", TG_RULE, `وضعیت‌ها: ${statusLine || "—"}`, "", blocks.join("\n\n")].join("\n");
 }
 
 /** خلاصهٔ رفرال */
@@ -1059,17 +1136,21 @@ export async function formatReferralsTelegramSummary(): Promise<string> {
     prisma.referralCode.count({ where: { isActive: true } }),
   ]);
 
-  const campLines = campaigns.map(
-    (c) =>
-      `• ${c.name} — پاداش ${telegramTomanFormatter.format(Number(c.rewardValue))} تومان`,
-  );
+  const campBlocks = campaigns.map((c, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
+    return [`${num}) ${c.name}`, `   پاداش: ${telegramTomanFormatter.format(Number(c.rewardValue))} تومان`].join("\n");
+  });
+
+  const campSection = campBlocks.length ? campBlocks.join("\n\n") : "—";
 
   return [
     "🔗 رفرال",
-    `جایزه در انتظار: ${pendingAttr} | کدهای فعال: ${codes}`,
+    TG_RULE,
+    `جایزه در انتظار: ${telegramDigitFormatter.format(pendingAttr)}`,
+    `کدهای فعال: ${telegramDigitFormatter.format(codes)}`,
     "",
     "کمپین‌های فعال:",
-    ...(campLines.length ? campLines : ["—"]),
+    campSection,
   ].join("\n");
 }
 
@@ -1088,19 +1169,22 @@ export async function formatWalletsTelegramSummary(): Promise<string> {
     }),
   ]);
 
-  const total = agg._sum.balance != null ? telegramTomanFormatter.format(Number(agg._sum.balance)) : "0";
-  const lines = topBalances.map((w, i) => {
+  const total = agg._sum.balance != null ? telegramTomanFormatter.format(Number(agg._sum.balance)) : "۰";
+  const blocks = topBalances.map((w, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
     const b = telegramTomanFormatter.format(Number(w.balance));
     const who = w.user.phone ?? w.user.name;
-    return `${i + 1}. ${who} — ${b} تومان`;
+    return [`${num}) ${who}`, `   مانده: ${b} تومان`].join("\n");
   });
 
   return [
     "👛 کیف پول‌ها",
-    `تعداد کیف‌ها: ${walletCount} — جمع مانده (تقریبی): ${total} تومان`,
+    TG_RULE,
+    `تعداد کیف‌ها: ${telegramDigitFormatter.format(walletCount)}`,
+    `جمع مانده (تقریبی): ${total} تومان`,
     "",
     "بیشترین مانده:",
-    ...lines,
+    blocks.length ? blocks.join("\n\n") : "—",
   ].join("\n");
 }
 
@@ -1126,21 +1210,26 @@ export async function formatAdminReportsSnippetForTelegram(): Promise<string> {
     select: { action: true, message: true, createdAt: true },
   });
 
-  const auditLines = audits.map((a) => {
-    const msg = a.message.length > 70 ? `${a.message.slice(0, 70)}…` : a.message;
-    return `• ${a.action}: ${msg}`;
+  const auditBlocks = audits.map((a, i) => {
+    const num = telegramDigitFormatter.format(i + 1);
+    const msg = a.message.length > 80 ? `${a.message.slice(0, 80)}…` : a.message;
+    return [`${num}) ${a.action}`, `   ${msg}`].join("\n");
   });
 
   return [
-    "📉 گزارش‌ها (۷ روز اخیر، خلاصه)",
-    `سفارش جدید: ${orders}`,
-    `پرداخت تاییدشده: ${approvedPayments}`,
-    `کاربر جدید: ${newUsers}`,
+    "📉 گزارش‌ها · ۷ روز اخیر",
+    TG_RULE,
+    "۱) سفارش جدید",
+    `    ${telegramDigitFormatter.format(orders)}`,
+    "۲) پرداخت تأییدشده",
+    `    ${telegramDigitFormatter.format(approvedPayments)}`,
+    "۳) کاربر جدید",
+    `    ${telegramDigitFormatter.format(newUsers)}`,
     "",
     "آخرین رویدادهای پرداخت:",
-    ...(auditLines.length ? auditLines : ["—"]),
+    auditBlocks.length ? auditBlocks.join("\n\n") : "—",
     "",
-    "برای نمودار و جزئیات کامل صفحهٔ گزارش‌ها را در پنل باز کنید.",
+    "برای نمودار کامل از پنل وب → گزارش‌ها استفاده کنید. برای لینک سریع: /panel",
   ].join("\n");
 }
 
