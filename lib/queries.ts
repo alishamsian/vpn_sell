@@ -840,7 +840,7 @@ const telegramTomanFormatter = new Intl.NumberFormat("fa-IR");
 export async function formatPendingPaymentsForTelegram(limit = 8): Promise<string> {
   const rows = await prisma.payment.findMany({
     where: { status: PaymentStatus.PENDING },
-    orderBy: { createdAt: "desc" },
+    orderBy: { submittedAt: "desc" },
     take: limit,
     include: {
       order: {
