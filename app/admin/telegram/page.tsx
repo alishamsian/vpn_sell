@@ -2,7 +2,7 @@ import { AdminPageHeader, AdminSectionCard, AdminPill } from "@/components/admin
 import { requireAdmin } from "@/lib/auth";
 import { fetchTelegramWebhookInfo, getTelegramAdminChatIdNormalized, isTelegramConfigured } from "@/lib/telegram";
 
-import { setWebhookFromAdminAction } from "./actions";
+import { WebhookControls } from "./webhook-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -39,14 +39,7 @@ export default async function AdminTelegramPage() {
         title="تنظیم وب‌هوک"
         description="این دکمه وب‌هوک را روی همین دامنه (production) ست می‌کند و allowed_updates را روی callback_query و message می‌گذارد."
       >
-        <form action={setWebhookFromAdminAction} className="flex flex-wrap items-center gap-3">
-          <button type="submit" className="btn-brand-sm">
-            تنظیم/آپدیت وب‌هوک
-          </button>
-          <div className="text-xs text-faint">
-            نکته: اگر روی Vercel «Deployment Protection» فعال باشد، تلگرام به وب‌هوک دسترسی ندارد.
-          </div>
-        </form>
+        <WebhookControls />
       </AdminSectionCard>
 
       <AdminSectionCard title="وضعیت فعلی" description="این اطلاعات مستقیم از getWebhookInfo تلگرام خوانده می‌شود.">
