@@ -45,6 +45,36 @@
   .pill-brand {
     @apply inline-flex items-center gap-2 rounded-full border border-sky-300/40 bg-gradient-to-l from-cyan-500/10 to-amber-500/10 px-3 py-1.5 text-xs font-semibold text-sky-900 sm:px-4 dark:border-sky-500/35 dark:bg-slate-800/90 dark:text-sky-100;
   }
+
+  /** پنل شیشه‌ای ادمین (کاتالوگ و جداول) */
+  .admin-glass-panel {
+    @apply rounded-card border shadow-soft backdrop-blur-2xl;
+    @apply border-white/70 bg-white/55 dark:border-slate-500/20 dark:bg-slate-900/55;
+    box-shadow:
+      0 8px 36px rgba(15, 23, 42, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  .dark .admin-glass-panel {
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .admin-glass-tile {
+    @apply rounded-2xl border backdrop-blur-md;
+    @apply border-white/60 bg-white/45 dark:border-slate-500/15 dark:bg-slate-800/45;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  }
+
+  .dark .admin-glass-tile {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .admin-glass-inset {
+    @apply rounded-2xl border backdrop-blur-sm;
+    @apply border-stroke/80 bg-inset/80 dark:border-slate-600/30 dark:bg-slate-950/35;
+  }
 }
 
 @keyframes section-in {

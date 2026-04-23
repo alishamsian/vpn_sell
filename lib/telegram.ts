@@ -310,6 +310,8 @@ export const TELEGRAM_ADMIN_REPLY_LABELS = {
   USERS: "🧑‍💼 کاربران",
   WALLET_TOPUPS: "💳 شارژ کیف (معلق)",
   CATALOG: "📦 کاتالوگ",
+  PLAN_NEW: "➕ پلن جدید",
+  PLAN_LIST: "📋 لیست پلن‌ها",
   COUPONS: "🎟 کوپن‌ها",
   REPORTS_SITE: "📉 گزارش‌ها",
   WALLETS: "👛 کیف‌ها",
@@ -337,6 +339,7 @@ export function buildAdminReplyKeyboardMarkup(): Record<string, unknown> {
       [L.PENDING_PAYMENTS, L.WAITING_ACCOUNT],
       [L.OPEN_CHATS, L.LINKS],
       [L.USERS, L.CATALOG],
+      [L.PLAN_NEW, L.PLAN_LIST],
       [L.WALLET_TOPUPS, L.COUPONS],
       [L.REPORTS_SITE, L.WALLETS],
       [L.GIFT_CARDS, L.REFERRALS],
@@ -365,6 +368,7 @@ export function buildAdminWelcomeText() {
     "• دکمهٔ «پنل کامل» همان UI وب ادمین را داخل تلگرام باز می‌کند (بعد از /setdomain در BotFather).",
     "",
     "دستورات: /start یا /menu — منو | /report — آمار | /panel — دکمه‌های لینک پنل (فقط وقتی لازم داری)",
+    "پلن‌ها: /plannew — ساخت | /planlist یا /plans — لیست و ویرایش | /plancancel — لغو ویزارد",
   ].join("\n");
 }
 
@@ -443,6 +447,10 @@ export async function setTelegramBotCommands() {
     { command: "report", description: "خلاصه وضعیت (پرداخت، چت، …)" },
     { command: "links", description: "همان لینک‌های کامل پنل" },
     { command: "panel", description: "لینک همهٔ بخش‌های پنل ادمین" },
+    { command: "plannew", description: "شروع ساخت پلن جدید (ویزارد در چت)" },
+    { command: "planlist", description: "لیست پلن‌ها و دکمهٔ ویرایش" },
+    { command: "plans", description: "همان planlist" },
+    { command: "plancancel", description: "لغو ویزارد ساخت یا ویرایش پلن" },
   ];
 
   await telegramRequest<true>("setMyCommands", JSON.stringify({ commands }));

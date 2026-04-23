@@ -35,6 +35,14 @@ import {
   getAdminOverview,
 } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
+import {
+  actorFromMessage,
+  clearPlanWizard,
+  handleTelegramPlanWizardText,
+  sendPlanListMessage,
+  startPlanCreateWizard,
+  tryHandleTelegramPlanCallback,
+} from "@/lib/telegram-plan-bot";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -170,6 +178,25 @@ async function handleTelegramAdminReplyKeyboard(message: TelegramInboundMessage)
     return true;
   }
 
+  if (text === L.PLAN_NEW) {
+    const actorId = message.from?.id != null ? String(message.from.id) : null;
+    if (!actorId) {
+      return false;
+    }
+    await clearPlanWizard(actorId);
+    await startPlanCreateWizard(actorId);
+    return true;
+  }
+
+  if (text === L.PLAN_LIST) {
+    const actorId = message.from?.id != null ? String(message.from.id) : null;
+    if (actorId) {
+      await clearPlanWizard(actorId);
+    }
+    await sendPlanListMessage();
+    return true;
+  }
+
   if (text === L.COUPONS) {
     const s = await formatCouponsTelegramSummary();
     await sendAdminPlainTextMessage(s.slice(0, 4090));
@@ -203,7 +230,10 @@ async function handleTelegramAdminReplyKeyboard(message: TelegramInboundMessage)
   return false;
 }
 
-async function handleTelegramAdminCommands(message: TelegramInboundMessage): Promise<boolean> {
+async function handleTelegramAdminCommands(
+  message: TelegramInboundMessage,
+  actorTelegramId: string | null,
+): Promise<boolean> {
   if (!isInboundTelegramAdmin(message) || message.from?.is_bot) {
     return false;
   }
@@ -217,11 +247,17 @@ async function handleTelegramAdminCommands(message: TelegramInboundMessage): Pro
   const cmd = first.replace(/@\w+$/, "");
 
   if (cmd === "/start" || cmd === "/help" || cmd === "/menu") {
+    if (actorTelegramId) {
+      await clearPlanWizard(actorTelegramId);
+    }
     await sendAdminOnboardingKeyboardBundle();
     return true;
   }
 
   if (cmd === "/links" || cmd === "/panel") {
+    if (actorTelegramId) {
+      await clearPlanWizard(actorTelegramId);
+    }
     await sendAdminPlainTextMessage("لینک همهٔ بخش‌های پنل ادمین:", {
       reply_markup: buildAdminMenuReplyMarkup(),
     });
@@ -229,8 +265,36 @@ async function handleTelegramAdminCommands(message: TelegramInboundMessage): Pro
   }
 
   if (cmd === "/report") {
+    if (actorTelegramId) {
+      await clearPlanWizard(actorTelegramId);
+    }
     const overview = await getAdminOverview();
     await sendAdminPlainTextMessage(formatAdminOverviewForTelegram(overview));
+    return true;
+  }
+
+  if (cmd === "/plancancel") {
+    if (actorTelegramId) {
+      await clearPlanWizard(actorTelegramId);
+    }
+    await sendAdminPlainTextMessage("جلسهٔ ساخت یا ویرایش پلن لغو شد.");
+    return true;
+  }
+
+  if (cmd === "/plannew") {
+    if (!actorTelegramId) {
+      return false;
+    }
+    await clearPlanWizard(actorTelegramId);
+    await startPlanCreateWizard(actorTelegramId);
+    return true;
+  }
+
+  if (cmd === "/planlist" || cmd === "/plans") {
+    if (actorTelegramId) {
+      await clearPlanWizard(actorTelegramId);
+    }
+    await sendPlanListMessage();
     return true;
   }
 
@@ -393,11 +457,22 @@ export async function POST(request: Request) {
 
   if (body.message && !body.callback_query) {
     try {
+      const actor = actorFromMessage(body.message.from?.id);
       const handledKeyboard = await handleTelegramAdminReplyKeyboard(body.message);
       if (!handledKeyboard) {
-        const handledCommand = await handleTelegramAdminCommands(body.message);
+        const handledCommand = await handleTelegramAdminCommands(body.message, actor);
         if (!handledCommand) {
-          await handleTelegramAdminTextReply(body.message);
+          if (actor) {
+            const wizardHandled = await handleTelegramPlanWizardText({
+              actorTelegramId: actor,
+              text: body.message.text?.trim() ?? "",
+            });
+            if (!wizardHandled) {
+              await handleTelegramAdminTextReply(body.message);
+            }
+          } else {
+            await handleTelegramAdminTextReply(body.message);
+          }
         }
       }
     } catch (error) {
@@ -434,6 +509,18 @@ export async function POST(request: Request) {
       console.error("[telegram webhook] admin_menu failed:", error);
     }
     return NextResponse.json({ ok: true });
+  }
+
+  if (callback.data.startsWith("P|")) {
+    const actor = callback.from?.id != null ? String(callback.from.id) : "";
+    const planHandled = await tryHandleTelegramPlanCallback({
+      callbackQueryId: callback.id,
+      data: callback.data,
+      actorTelegramId: actor,
+    });
+    if (planHandled) {
+      return NextResponse.json({ ok: true });
+    }
   }
 
   const { decision, paymentId } = parseCallbackData(callback.data);

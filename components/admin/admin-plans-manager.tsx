@@ -1,5 +1,6 @@
 "use client";
 
+import { Search, X } from "lucide-react";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -111,7 +112,26 @@ export function AdminPlansManager({ plans }: AdminPlansManagerProps) {
         return true;
       }
 
-      const haystack = normalizeDigits(`${plan.name} ${plan.id}`.toLowerCase());
+      const haystack = normalizeDigits(
+        [
+          plan.name,
+          plan.id,
+          plan.price,
+          plan.durationDays,
+          plan.remainingCount,
+          plan.soldCount,
+          plan.orderCounts.total,
+          plan.orderCounts.pendingPayment,
+          plan.orderCounts.paymentSubmitted,
+          plan.orderCounts.waitingForAccount,
+          plan.orderCounts.fulfilled,
+          plan.pendingPaymentReviews,
+          plan.revenueToman,
+          plan.maxUsers ?? "نامحدود",
+        ]
+          .join(" ")
+          .toLowerCase(),
+      );
 
       return haystack.includes(normalizedQuery);
     });
@@ -139,42 +159,85 @@ export function AdminPlansManager({ plans }: AdminPlansManagerProps) {
     return sorted;
   }, [onlyLowStock, plans, query, sort]);
 
-  return (
-    <div className="space-y-4">
-      <div className="rounded-card border border-stroke bg-panel/80 p-4 shadow-soft sm:p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setOnlyLowStock((current) => !current)}
-              className={`rounded-full px-4 py-2 text-xs font-medium transition ${
-                onlyLowStock
-                  ? "bg-amber-600 text-white shadow-sm"
-                  : "border border-stroke bg-panel text-prose hover:border-stroke"
-              }`}
-            >
-              فقط موجودی کم
-            </button>
-            <div className="hidden h-6 w-px bg-slate-200 sm:block" />
-            <div className="text-xs text-faint">
-              نمایش{" "}
-              <span className="font-semibold text-ink">{new Intl.NumberFormat("fa-IR").format(filtered.length)}</span>{" "}
-              از{" "}
-              <span className="font-semibold text-ink">{new Intl.NumberFormat("fa-IR").format(plans.length)}</span>
-            </div>
-          </div>
+  const nf = useMemo(() => new Intl.NumberFormat("fa-IR"), []);
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:max-w-xl lg:grid-cols-2">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="جستجو بر اساس نام یا شناسه پلن..."
-              className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 text-sm outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
-            />
+  const catalogStats = useMemo(() => {
+    let totalSlots = 0;
+    let pendingQueue = 0;
+    let approxRevenue = 0;
+    for (const p of plans) {
+      totalSlots += p.remainingCount;
+      pendingQueue += p.pendingPaymentReviews;
+      approxRevenue += p.revenueToman;
+    }
+    return { totalSlots, pendingQueue, approxRevenue };
+  }, [plans]);
+
+  return (
+    <div className="relative space-y-5">
+      <div
+        className="pointer-events-none absolute -inset-x-4 -top-6 bottom-0 -z-10 opacity-90"
+        aria-hidden
+      >
+        <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-sky-400/15 blur-3xl dark:bg-sky-500/10" />
+        <div className="absolute left-1/4 top-24 h-40 w-56 rounded-full bg-amber-400/12 blur-3xl dark:bg-amber-500/8" />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryGlassTile
+          label="پلن فعال"
+          value={nf.format(plans.length)}
+          hint="در کل کاتالوگ"
+        />
+        <SummaryGlassTile
+          label="جای خالی اکانت"
+          value={nf.format(catalogStats.totalSlots)}
+          hint="جمع موجودی همهٔ پلن‌ها"
+        />
+        <SummaryGlassTile
+          label="صف بررسی پرداخت"
+          value={nf.format(catalogStats.pendingQueue)}
+          hint="سفارش با پرداخت معلق"
+          emphasize={catalogStats.pendingQueue > 0}
+        />
+        <SummaryGlassTile
+          label="درآمد تخمینی"
+          value={formatPrice(catalogStats.approxRevenue)}
+          hint="جمع تقریبی همهٔ پلن‌ها"
+        />
+      </div>
+
+      <div className="admin-glass-panel p-4 sm:p-5">
+        <div className="mb-4 h-px bg-gradient-to-l from-transparent via-sky-400/35 to-transparent dark:via-sky-500/25" />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 flex-1 sm:max-w-md">
+              <Search
+                className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
+                aria-hidden
+              />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="نام، شناسه، قیمت، موجودی، وضعیت سفارش…"
+                className="w-full rounded-2xl border border-stroke/80 bg-white/70 py-3 ps-10 pe-10 text-sm text-ink outline-none backdrop-blur-sm transition placeholder:text-faint focus:border-sky-400/50 focus:ring-2 focus:ring-brand-cyan/20 dark:border-slate-600/40 dark:bg-slate-950/40"
+                aria-label="جستجوی پلن"
+              />
+              {query.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="absolute end-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-faint transition hover:bg-inset hover:text-ink"
+                  aria-label="پاک کردن جستجو"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
             <select
               value={sort}
               onChange={(event) => setSort(event.target.value as typeof sort)}
-              className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 text-sm outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
+              className="w-full shrink-0 rounded-2xl border border-stroke/80 bg-white/70 px-4 py-3 text-sm outline-none backdrop-blur-sm transition focus:border-sky-400/50 focus:ring-2 focus:ring-brand-cyan/20 dark:border-slate-600/40 dark:bg-slate-950/40 sm:w-auto sm:min-w-[14rem]"
             >
               <option value="inventory_desc">مرتب‌سازی: بیشترین موجودی</option>
               <option value="inventory_asc">مرتب‌سازی: کمترین موجودی</option>
@@ -183,12 +246,40 @@ export function AdminPlansManager({ plans }: AdminPlansManagerProps) {
               <option value="name">مرتب‌سازی: نام</option>
             </select>
           </div>
+
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            <button
+              type="button"
+              onClick={() => setOnlyLowStock((current) => !current)}
+              className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                onlyLowStock
+                  ? "bg-amber-600 text-white shadow-md shadow-amber-900/15"
+                  : "admin-glass-tile text-prose hover:border-stroke hover:text-ink"
+              }`}
+            >
+              فقط موجودی کم (≤۲)
+            </button>
+            <div className="admin-glass-tile px-3 py-2 text-xs text-faint">
+              نمایش{" "}
+              <span className="font-semibold text-ink">{nf.format(filtered.length)}</span> از{" "}
+              <span className="font-semibold text-ink">{nf.format(plans.length)}</span>
+              {onlyLowStock ? (
+                <>
+                  {" "}
+                  ·{" "}
+                  <span className="text-amber-800 dark:text-amber-200">
+                    فقط پلن‌های با موجودی ≤۲
+                  </span>
+                </>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-stroke bg-inset px-4 py-10 text-center text-sm text-faint">
-          پلنی با این فیلتر پیدا نشد.
+        <div className="admin-glass-panel border-dashed px-4 py-12 text-center text-sm text-faint">
+          پلنی با این فیلتر پیدا نشد. عبارت جستجو را عوض کنید یا فیلتر موجودی کم را بردارید.
         </div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
@@ -197,6 +288,32 @@ export function AdminPlansManager({ plans }: AdminPlansManagerProps) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function SummaryGlassTile({
+  label,
+  value,
+  hint,
+  emphasize = false,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  emphasize?: boolean;
+}) {
+  return (
+    <div
+      className={`admin-glass-tile p-4 transition ${
+        emphasize ? "ring-2 ring-amber-400/50 dark:ring-amber-500/35" : ""
+      }`}
+    >
+      <div className="text-xs font-medium text-faint">{label}</div>
+      <div className="mt-1.5 text-xl font-bold tabular-nums text-ink" dir="ltr">
+        {value}
+      </div>
+      <div className="mt-1 text-[11px] leading-relaxed text-faint">{hint}</div>
     </div>
   );
 }
@@ -246,19 +363,20 @@ function PlanAdminCard({ plan }: { plan: AdminPlanDashboard }) {
   const isLowStock = plan.remainingCount <= 2;
 
   return (
-    <div className="rounded-card border border-stroke bg-panel p-4 shadow-soft sm:p-5">
+    <div className="admin-glass-panel p-4 sm:p-5">
+      <div className="mb-4 h-px bg-gradient-to-l from-transparent via-cyan-400/30 to-transparent dark:via-cyan-500/20" />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="truncate text-lg font-semibold text-ink">{plan.name}</h3>
             {isLowStock ? (
-              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-900 ring-1 ring-amber-400/40 backdrop-blur-sm dark:bg-amber-950/50 dark:text-amber-100 dark:ring-amber-500/30">
                 هشدار موجودی
               </span>
             ) : null}
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-faint">
-            <span className="font-mono" dir="ltr">
+          <div className="admin-glass-inset flex flex-wrap items-center gap-2 px-3 py-2 text-xs text-faint">
+            <span className="font-mono text-prose" dir="ltr">
               {plan.id}
             </span>
             <button
@@ -266,17 +384,18 @@ function PlanAdminCard({ plan }: { plan: AdminPlanDashboard }) {
               onClick={() => {
                 void navigator.clipboard.writeText(plan.id);
               }}
-              className="rounded-full border border-stroke bg-panel px-2.5 py-1 text-xs font-medium text-prose transition hover:border-stroke"
+              className="rounded-full border border-stroke/80 bg-white/60 px-2.5 py-1 text-xs font-medium text-prose backdrop-blur-sm transition hover:border-stroke hover:text-ink dark:bg-slate-900/50"
             >
               کپی شناسه
             </button>
           </div>
         </div>
 
-        <div className="text-left">
-          <div className="text-sm font-semibold text-ink">{formatPrice(plan.price)}</div>
-          <div className="mt-1 text-xs text-faint">
-            {formatDuration(plan.durationDays)} • {formatUserLimit(plan.maxUsers)}
+        <div className="admin-glass-tile min-w-[8.5rem] px-4 py-3 text-left">
+          <div className="text-xs text-faint">قیمت</div>
+          <div className="text-base font-bold text-ink">{formatPrice(plan.price)}</div>
+          <div className="mt-1 text-[11px] text-faint">
+            {formatDuration(plan.durationDays)} · {formatUserLimit(plan.maxUsers)}
           </div>
         </div>
       </div>
@@ -298,7 +417,7 @@ function PlanAdminCard({ plan }: { plan: AdminPlanDashboard }) {
         «درآمد (~)» تخمینی است و بر اساس سفارش‌های Fulfilled یا پرداخت‌های Approved محاسبه می‌شود.
       </div>
 
-      <details className="group mt-4 rounded-2xl border border-stroke bg-panel/70 px-3 py-2 sm:px-4 sm:py-3">
+      <details className="group admin-glass-inset mt-4 px-3 py-2 sm:px-4 sm:py-3">
         <summary className="cursor-pointer list-none text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
           <div className="flex items-center justify-between gap-3">
             <span>جزئیات وضعیت سفارش‌ها</span>
@@ -545,7 +664,7 @@ function PlanAdminCard({ plan }: { plan: AdminPlanDashboard }) {
 function StatPill({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
   return (
     <div
-      className={`rounded-2xl border border-stroke bg-panel ${
+      className={`admin-glass-tile ${
         compact ? "px-3 py-2.5" : "px-3 py-3"
       }`}
     >

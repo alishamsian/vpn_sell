@@ -150,6 +150,15 @@ model Plan {
   @@index([createdAt])
 }
 
+/** ویزارد ساخت/ویرایش پلن از تلگرام (کلید = آیدی عددی فرستنده در تلگرام). */
+model TelegramPlanWizardState {
+  actorTelegramId String   @id
+  phase           String   @default("idle")
+  planId          String?
+  payload         Json     @default("{}")
+  updatedAt       DateTime @updatedAt
+}
+
 model Account {
   id        String        @id @default(cuid())
   config    String        @db.Text
