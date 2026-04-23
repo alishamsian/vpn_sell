@@ -72,6 +72,41 @@ export async function fetchTelegramWebhookInfo(): Promise<{
   };
 }
 
+export async function setTelegramWebhook(params: {
+  webhookUrl: string;
+  secretToken?: string | null;
+  allowedUpdates?: string[];
+}) {
+  const { botToken } = getTelegramConfig();
+  if (!botToken) {
+    return { ok: false as const, error: "TELEGRAM_BOT_TOKEN خالی است." };
+  }
+
+  const allowed_updates = params.allowedUpdates ?? ["callback_query", "message"];
+  const payload: Record<string, unknown> = {
+    url: params.webhookUrl,
+    allowed_updates,
+  };
+
+  const secret = (params.secretToken ?? "").trim();
+  if (secret) {
+    payload.secret_token = secret;
+  }
+
+  const res = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const body = (await res.json()) as { ok: boolean; description?: string };
+  if (!res.ok || !body.ok) {
+    return { ok: false as const, error: humanizeTelegramApiError(body.description ?? "setWebhook ناموفق بود.") };
+  }
+
+  return { ok: true as const };
+}
+
 function getTelegramApiUrl(method: string) {
   const { botToken } = getTelegramConfig();
 

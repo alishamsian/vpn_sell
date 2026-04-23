@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   MessageSquareText,
   Package2,
+  Send,
   Percent,
   Gift,
   Wallet,
@@ -97,6 +98,12 @@ const navigationItems: AdminNavItem[] = [
     icon: MessageSquareText,
     badgeKey: "unreadAdminChats",
     match: (pathname: string) => pathname.startsWith("/admin/chat"),
+  },
+  {
+    href: "/admin/telegram",
+    label: "تلگرام",
+    icon: Send,
+    match: (pathname: string) => pathname.startsWith("/admin/telegram"),
   },
   {
     href: "/admin/users",
