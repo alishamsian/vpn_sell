@@ -19,26 +19,11 @@ import {
 } from "@/lib/telegram";
 import { reviewPayment } from "@/lib/orders";
 import { buildTelegramDailyReportText } from "@/lib/telegram-daily-report";
-import {
-  formatAdminOverviewForTelegram,
-  formatAdminReportsSnippetForTelegram,
-  formatCatalogInventoryForTelegram,
-  formatCouponsTelegramSummary,
-  formatGiftCardsTelegramSummary,
-  formatOpenConversationsForTelegram,
-  formatPendingPaymentsForTelegram,
-  formatPendingWalletTopUpsForTelegram,
-  formatRecentUsersForTelegram,
-  formatReferralsTelegramSummary,
-  formatWaitingAccountOrdersForTelegram,
-  formatWalletsTelegramSummary,
-  getAdminOverview,
-} from "@/lib/queries";
+import { formatAdminOverviewForTelegram, getAdminOverview } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
 import {
   handleTelegramInventoryWizardText,
   handleTelegramStockSlashCommands,
-  startStockAddWizard,
   tryHandleTelegramInventoryCallback,
 } from "@/lib/telegram-inventory-bot";
 import {
@@ -48,6 +33,7 @@ import {
   startPlanCreateWizard,
   tryHandleTelegramPlanCallback,
 } from "@/lib/telegram-plan-bot";
+import { sendAdminHubRootMessage, tryHandleTelegramAdminHubCallback } from "@/lib/telegram-admin-hub";
 import { clearAllTelegramWizards } from "@/lib/telegram-wizards";
 
 export const dynamic = "force-dynamic";
@@ -136,109 +122,8 @@ async function handleTelegramAdminReplyKeyboard(message: TelegramInboundMessage)
     return true;
   }
 
-  if (text === L.STATUS) {
-    const overview = await getAdminOverview();
-    await sendAdminPlainTextMessage(formatAdminOverviewForTelegram(overview));
-    return true;
-  }
-
-  if (text === L.REPORT_FULL) {
-    const full = await buildTelegramDailyReportText();
-    await sendAdminPlainTextMessage(full.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.PENDING_PAYMENTS) {
-    const s = await formatPendingPaymentsForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.WAITING_ACCOUNT) {
-    const s = await formatWaitingAccountOrdersForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.OPEN_CHATS) {
-    const s = await formatOpenConversationsForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.USERS) {
-    const s = await formatRecentUsersForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.WALLET_TOPUPS) {
-    const s = await formatPendingWalletTopUpsForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.CATALOG) {
-    const s = await formatCatalogInventoryForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.PLAN_NEW) {
-    const actorId = message.from?.id != null ? String(message.from.id) : null;
-    if (!actorId) {
-      return false;
-    }
-    await clearAllTelegramWizards(actorId);
-    await startPlanCreateWizard(actorId);
-    return true;
-  }
-
-  if (text === L.PLAN_LIST) {
-    const actorId = message.from?.id != null ? String(message.from.id) : null;
-    if (actorId) {
-      await clearAllTelegramWizards(actorId);
-    }
-    await sendPlanListMessage();
-    return true;
-  }
-
-  if (text === L.STOCK_ADD) {
-    const actorId = message.from?.id != null ? String(message.from.id) : null;
-    if (!actorId) {
-      return false;
-    }
-    await startStockAddWizard(actorId);
-    return true;
-  }
-
-  if (text === L.COUPONS) {
-    const s = await formatCouponsTelegramSummary();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.REPORTS_SITE) {
-    const s = await formatAdminReportsSnippetForTelegram();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.WALLETS) {
-    const s = await formatWalletsTelegramSummary();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.GIFT_CARDS) {
-    const s = await formatGiftCardsTelegramSummary();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
-    return true;
-  }
-
-  if (text === L.REFERRALS) {
-    const s = await formatReferralsTelegramSummary();
-    await sendAdminPlainTextMessage(s.slice(0, 4090));
+  if (text === L.HUB_ROOT) {
+    await sendAdminHubRootMessage();
     return true;
   }
 
@@ -321,6 +206,11 @@ async function handleTelegramAdminCommands(
     if (handled) {
       return true;
     }
+  }
+
+  if (cmd === "/hub") {
+    await sendAdminHubRootMessage();
+    return true;
   }
 
   return false;
@@ -542,6 +432,20 @@ export async function POST(request: Request) {
       console.error("[telegram webhook] admin_menu failed:", error);
     }
     return NextResponse.json({ ok: true });
+  }
+
+  if (callback.data.startsWith("H|")) {
+    const actor = callback.from?.id != null ? String(callback.from.id) : "";
+    const hubHandled = await tryHandleTelegramAdminHubCallback({
+      callbackQueryId: callback.id,
+      data: callback.data,
+      messageChatId: String(callback.message.chat.id),
+      messageId: callback.message.message_id,
+      actorTelegramId: actor,
+    });
+    if (hubHandled) {
+      return NextResponse.json({ ok: true });
+    }
   }
 
   if (callback.data.startsWith("I|")) {

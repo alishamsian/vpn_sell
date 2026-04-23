@@ -299,25 +299,11 @@ function buildInlineKeyboard(params: { paymentId: string; orderId: string }) {
 
 /** برچسب‌های دکمهٔ پایین صفحه (Reply Keyboard) — باید با متن دریافتی وب‌هوک یکی باشد. */
 export const TELEGRAM_ADMIN_REPLY_LABELS = {
-  STATUS: "📊 وضعیت لحظه‌ای",
-  REPORT_FULL: "📈 گزارش کامل امروز",
+  /** منوی لایه‌ای اینلاین: آمار، پرداخت، پلن، … */
+  HUB_ROOT: "📂 منوی گزارش‌ها و عملیات",
   LINKS: "🔗 لینک‌های پنل",
   HELP: "📋 راهنما و دستورات",
   REFRESH: "🔄 بروزرسانی منو",
-  PENDING_PAYMENTS: "⏳ پرداخت‌های معلق",
-  WAITING_ACCOUNT: "📦 در انتظار اکانت",
-  OPEN_CHATS: "💬 چت‌های باز",
-  USERS: "🧑‍💼 کاربران",
-  WALLET_TOPUPS: "💳 شارژ کیف (معلق)",
-  CATALOG: "📦 کاتالوگ",
-  PLAN_NEW: "➕ پلن جدید",
-  PLAN_LIST: "📋 لیست پلن‌ها",
-  STOCK_ADD: "📥 افزودن موجودی",
-  COUPONS: "🎟 کوپن‌ها",
-  REPORTS_SITE: "📉 گزارش‌ها",
-  WALLETS: "👛 کیف‌ها",
-  GIFT_CARDS: "🎁 هدیه",
-  REFERRALS: "🔗 رفرال",
   CLOSE_KB: "❌ بستن دکمه‌های پایین",
 } as const;
 
@@ -336,21 +322,13 @@ export function buildAdminReplyKeyboardMarkup(): Record<string, unknown> {
   return {
     keyboard: [
       ...webPanelRow,
-      [L.STATUS, L.REPORT_FULL],
-      [L.PENDING_PAYMENTS, L.WAITING_ACCOUNT],
-      [L.OPEN_CHATS, L.LINKS],
-      [L.USERS, L.CATALOG],
-      [L.PLAN_NEW, L.PLAN_LIST],
-      [L.STOCK_ADD],
-      [L.WALLET_TOPUPS, L.COUPONS],
-      [L.REPORTS_SITE, L.WALLETS],
-      [L.GIFT_CARDS, L.REFERRALS],
-      [L.HELP, L.REFRESH],
-      [L.CLOSE_KB],
+      [L.HUB_ROOT],
+      [L.LINKS, L.HELP],
+      [L.REFRESH, L.CLOSE_KB],
     ],
     resize_keyboard: true,
     is_persistent: true,
-    input_field_placeholder: "Reply به رسید یا پیام چت کاربر…",
+    input_field_placeholder: "Reply به رسید؛ یا منوی گزارش‌ها…",
   };
 }
 
@@ -366,12 +344,13 @@ export function buildAdminWelcomeText() {
     "• روی پیام رسید Reply بزنید و متن بفرستید = رد با همان متن (به کاربر نشان داده می‌شود).",
     "  برای تایید سریع همان Reply را با کلمهٔ approve یا تایید بفرستید.",
     "• از دکمه‌های زیر هر رسید برای تایید/رد و اقدام‌های دیگر استفاده کنید.",
-    "• از دکمه‌های پایین صفحه برای آمار، لیست‌ها و لینک همهٔ بخش‌های پنل استفاده کنید.",
+    "• از دکمهٔ «منوی گزارش‌ها و عملیات» (یا /hub) گزارش‌ها را دسته‌بندی ببینید؛ گزارش‌های بلند چند صفحه می‌شوند.",
     "• دکمهٔ «پنل کامل» همان UI وب ادمین را داخل تلگرام باز می‌کند (بعد از /setdomain در BotFather).",
     "",
-    "دستورات: /start یا /menu — منو | /report — آمار | /panel — دکمه‌های لینک پنل (فقط وقتی لازم داری)",
-    "پلن‌ها: /plannew — ساخت | /planlist یا /plans — لیست و ویرایش | /plancancel — لغو ویزارد",
-    "موجودی: /stockadd — انتخاب پلن و paste کانفیگ | /stockdone — ثبت | /stockcancel — لغو",
+    "دستورات: /start یا /menu — منو | /hub — همان منوی دسته‌بندی‌شدهٔ گزارش‌ها | /report — آمار سریع | /panel — لینک پنل",
+    "پلن‌ها: /plannew | /planlist یا /plans | /plancancel",
+    "موجودی: /stockadd | /stockdone | /stockcancel",
+    "گزارش‌های طولانی چند صفحه می‌شوند؛ داخل پیام با دکمهٔ قبلی/بعدی جابه‌جا شوید.",
   ].join("\n");
 }
 
@@ -444,7 +423,7 @@ export async function setTelegramBotCommands() {
   }
 
   const commands = [
-    { command: "start", description: "منوی ادمین، دکمه‌های پایین و لینک پنل" },
+    { command: "start", description: "منوی ادمین، کیبورد خلاصه و لینک پنل" },
     { command: "help", description: "راهنمای کوتاه ربات" },
     { command: "menu", description: "نمایش مجدد منو و دکمه‌های پایین" },
     { command: "report", description: "خلاصه وضعیت (پرداخت، چت، …)" },
@@ -457,6 +436,7 @@ export async function setTelegramBotCommands() {
     { command: "stockadd", description: "شروع افزودن موجودی اکانت به یک پلن" },
     { command: "stockdone", description: "ثبت کانفیگ‌های جمع‌شده در تلگرام" },
     { command: "stockcancel", description: "لغو افزودن موجودی بدون ثبت" },
+    { command: "hub", description: "منوی دسته‌بندی گزارش‌ها و عملیات" },
   ];
 
   await telegramRequest<true>("setMyCommands", JSON.stringify({ commands }));
@@ -617,13 +597,61 @@ export async function sendAdminPlainTextMessage(
   return telegramRequest<TelegramMessage>("sendMessage", JSON.stringify(payload));
 }
 
+/** پیام HTML به ادمین (منوی هاب، صفحه‌بندی). */
+export async function sendAdminHubDataMessage(options: {
+  text: string;
+  parse_mode: "HTML";
+  reply_markup?: Record<string, unknown>;
+}) {
+  const { adminChatId } = getTelegramConfig();
+  if (!adminChatId || !isTelegramConfigured()) {
+    throw new Error("تنظیمات تلگرام کامل نیست.");
+  }
+  const payload: Record<string, unknown> = {
+    chat_id: adminChatId,
+    text: options.text.slice(0, 4096),
+    parse_mode: options.parse_mode,
+    disable_web_page_preview: true,
+  };
+  if (options.reply_markup) {
+    payload.reply_markup = options.reply_markup;
+  }
+  return telegramRequest<TelegramMessage>("sendMessage", JSON.stringify(payload));
+}
+
+export async function editAdminHubMessage(options: {
+  chatId: string;
+  messageId: number;
+  text: string;
+  parse_mode: "HTML";
+  reply_markup?: Record<string, unknown>;
+}) {
+  const payload: Record<string, unknown> = {
+    chat_id: options.chatId,
+    message_id: options.messageId,
+    text: options.text.slice(0, 4096),
+    parse_mode: options.parse_mode,
+    disable_web_page_preview: true,
+  };
+  if (options.reply_markup) {
+    payload.reply_markup = options.reply_markup;
+  }
+  try {
+    return await telegramRequest<unknown>("editMessageText", JSON.stringify(payload));
+  } catch (error) {
+    console.warn("[telegram] editMessageText hub:", error);
+    return null;
+  }
+}
+
 /** خوش‌آمد + Reply Keyboard (بدون تکرار دکمهٔ اینلاین زیر هر پیام). */
 export async function sendAdminOnboardingKeyboardBundle() {
   await sendAdminPlainTextMessage(
     [
       buildAdminWelcomeText(),
       "",
-      "برای دکمه‌های لینک به همهٔ بخش‌های پنل دستور /panel را بفرستید.",
+      "دکمهٔ «منوی گزارش‌ها و عملیات» را بزنید یا /hub — گزارش‌ها دسته‌بندی و در چند صفحه نمایش داده می‌شوند.",
+      "برای لینک سریع همهٔ بخش‌های پنل: /panel",
     ].join("\n"),
     { reply_markup: buildAdminReplyKeyboardMarkup() },
   );

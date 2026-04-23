@@ -168,6 +168,16 @@ model TelegramInventoryWizardState {
   updatedAt       DateTime @updatedAt
 }
 
+/** صفحه‌بندی پیام‌های بلند ادمین در تلگرام (کلید کوتاه در callback_data). */
+model TelegramPagerSession {
+  shortCode       String   @id @db.VarChar(16)
+  actorTelegramId String
+  pages           Json
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model Account {
   id        String        @id @default(cuid())
   config    String        @db.Text
