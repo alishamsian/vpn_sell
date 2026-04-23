@@ -3,10 +3,30 @@ import type { ConversationType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isTelegramConfigured, sendAdminPlainTextMessage } from "@/lib/telegram";
 
+function getAppBaseUrl() {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+
+  // Vercel provides these at runtime; helpful when NEXT_PUBLIC_APP_URL isn't set yet.
+  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (productionHost) {
+    return `https://${productionHost.replace(/\/$/, "")}`;
+  }
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    return `https://${vercelUrl.replace(/\/$/, "")}`;
+  }
+
+  return "";
+}
+
 function adminChatDeepLink(userId: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const base = getAppBaseUrl();
   if (!base) {
-    return "(در env مقدار NEXT_PUBLIC_APP_URL را برای لینک پنل ادمین بگذارید)";
+    return "(لینک پنل نامشخص است؛ در env مقدار NEXT_PUBLIC_APP_URL را بگذارید)";
   }
   return `${base}/admin/chat/users/${userId}`;
 }
