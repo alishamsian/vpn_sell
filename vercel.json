@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/telegram-daily",
+      "schedule": "30 5 * * *"
+    }
+  ]
+}

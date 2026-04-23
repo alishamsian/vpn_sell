@@ -117,6 +117,25 @@ function getTelegramApiUrl(method: string) {
   return `https://api.telegram.org/bot${botToken}/${method}`;
 }
 
+function getAppBaseUrl() {
+  const explicit = stripEnvValue(process.env.NEXT_PUBLIC_APP_URL);
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+
+  const prod = stripEnvValue(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+  if (prod) {
+    return `https://${prod.replace(/\/$/, "")}`;
+  }
+
+  const vercel = stripEnvValue(process.env.VERCEL_URL);
+  if (vercel) {
+    return `https://${vercel.replace(/\/$/, "")}`;
+  }
+
+  return "";
+}
+
 export function isTelegramConfigured() {
   const { botToken, adminChatId } = getTelegramConfig();
 
@@ -125,6 +144,10 @@ export function isTelegramConfigured() {
 
 function humanizeTelegramApiError(description: string): string {
   const lower = description.toLowerCase();
+
+  if (lower.includes("too many requests") || lower.includes("flood")) {
+    return "تلگرام محدودیت نرخ اعمال کرده؛ چند لحظه بعد دوباره تلاش کنید.";
+  }
 
   if (lower.includes("bots can't send messages to bots")) {
     return [
@@ -137,21 +160,83 @@ function humanizeTelegramApiError(description: string): string {
   return description;
 }
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+type TelegramApiPayload<T> = {
+  ok: boolean;
+  result?: T;
+  description?: string;
+  parameters?: { retry_after?: number };
+};
+
 async function telegramRequest<T>(method: string, body: BodyInit, isFormData = false): Promise<T> {
-  const response = await fetch(getTelegramApiUrl(method), {
-    method: "POST",
-    headers: isFormData ? undefined : { "Content-Type": "application/json" },
-    body,
-  });
+  const maxAttempts = 4;
 
-  const payload = (await response.json()) as { ok: boolean; result?: T; description?: string };
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let response: Response;
+    try {
+      response = await fetch(getTelegramApiUrl(method), {
+        method: "POST",
+        headers: isFormData ? undefined : { "Content-Type": "application/json" },
+        body,
+      });
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      const networkish =
+        err.name === "AbortError" ||
+        err.message.includes("fetch failed") ||
+        err.message.includes("ECONNRESET") ||
+        err.message.includes("ETIMEDOUT");
+      if (networkish && attempt < maxAttempts) {
+        await sleep(350 * 2 ** (attempt - 1));
+        continue;
+      }
+      throw err;
+    }
 
-  if (!response.ok || !payload.ok || !payload.result) {
-    const raw = payload.description ?? "درخواست تلگرام ناموفق بود.";
-    throw new Error(humanizeTelegramApiError(raw));
+    let payload: TelegramApiPayload<T>;
+    try {
+      payload = (await response.json()) as TelegramApiPayload<T>;
+    } catch {
+      if (attempt < maxAttempts && (response.status >= 500 || response.status === 429)) {
+        await sleep(400 * attempt);
+        continue;
+      }
+      throw new Error("پاسخ JSON تلگرام نامعتبر بود.");
+    }
+
+    const desc = (payload.description ?? "").toLowerCase();
+    const retryAfterSec =
+      typeof payload.parameters?.retry_after === "number" ? payload.parameters.retry_after : null;
+    const httpRetryable = response.status === 429 || (response.status >= 500 && response.status <= 599);
+    const floodWait = retryAfterSec != null && retryAfterSec > 0;
+    const descRetryable =
+      desc.includes("too many requests") ||
+      desc.includes("retry after") ||
+      desc.includes("bad gateway") ||
+      desc.includes("service unavailable");
+
+    if (!payload.ok && (httpRetryable || floodWait || descRetryable) && attempt < maxAttempts) {
+      const baseMs = retryAfterSec != null ? retryAfterSec * 1000 : 500 * 2 ** (attempt - 1);
+      await sleep(Math.min(25_000, baseMs + 80 * attempt));
+      continue;
+    }
+
+    if (!response.ok || !payload.ok) {
+      const raw = payload.description ?? `HTTP ${response.status}`;
+      throw new Error(humanizeTelegramApiError(raw));
+    }
+
+    if (payload.result === undefined || payload.result === null) {
+      throw new Error(humanizeTelegramApiError(payload.description ?? "نتیجهٔ خالی از تلگرام."));
+    }
+
+    return payload.result;
   }
 
-  return payload.result;
+  throw new Error("تلگرام پس از چند تلاش پاسخ نداد.");
 }
 
 function buildCaption(params: {
@@ -179,15 +264,94 @@ function buildCaption(params: {
   ].join("\n");
 }
 
-function buildInlineKeyboard(paymentId: string) {
+function buildInlineKeyboard(params: { paymentId: string; orderId: string }) {
+  void params.orderId;
+  const base = getAppBaseUrl();
+  const paymentsUrl = base ? `${base}/admin/payments` : null;
+  const adminUrl = base ? `${base}/admin` : null;
+  const chatUrl = base ? `${base}/admin/chat` : null;
+  const telegramPanelUrl = base ? `${base}/admin/telegram` : null;
+
+  const linkRow = [
+    ...(adminUrl ? [{ text: "داشبورد", url: adminUrl }] : []),
+    ...(chatUrl ? [{ text: "چت", url: chatUrl }] : []),
+    ...(telegramPanelUrl ? [{ text: "وب‌هوک تلگرام", url: telegramPanelUrl }] : []),
+  ];
+
   return {
     inline_keyboard: [
       [
-        { text: "تایید پرداخت", callback_data: `approve:${paymentId}` },
-        { text: "رد پرداخت", callback_data: `reject:${paymentId}` },
+        { text: "تایید پرداخت", callback_data: `approve:${params.paymentId}` },
+        { text: "رد پرداخت", callback_data: `reject:${params.paymentId}` },
       ],
-    ],
+      [
+        { text: "رد با دلیل (Reply کن)", callback_data: `need_reason:${params.paymentId}` },
+        { text: "نیاز به اطلاعات بیشتر", callback_data: `need_info:${params.paymentId}` },
+      ],
+      [
+        { text: "درخواست ارسال مجدد رسید", callback_data: `request_resubmit:${params.paymentId}` },
+        ...(paymentsUrl ? [{ text: "پنل پرداخت‌ها", url: paymentsUrl }] : []),
+      ],
+      ...(linkRow.length > 0 ? [linkRow] : []),
+      [{ text: "منو / راهنما", callback_data: "admin_menu" }],
+    ].filter((row) => row.length > 0),
   };
+}
+
+/** متن خوش‌آمد برای ادمین (دستورات /start و /help). */
+export function buildAdminWelcomeText() {
+  return [
+    "سلام؛ این ربات برای مدیریت سایت است.",
+    "",
+    "• روی پیام رسید Reply بزنید و متن بفرستید = رد با همان متن (به کاربر نشان داده می‌شود).",
+    "  برای تایید سریع همان Reply را با کلمهٔ approve یا تایید بفرستید.",
+    "• از دکمه‌های زیر هر رسید برای تایید/رد و اقدام‌های دیگر استفاده کنید.",
+    "",
+    "دستورات: /start و /help — منو | /report — آمار لحظه‌ای | /menu — نمایش مجدد منو",
+  ].join("\n");
+}
+
+/** دکمه‌های میان‌خطی لینک به پنل و بازگردانی منو. */
+export function buildAdminMenuReplyMarkup() {
+  const base = getAppBaseUrl();
+  const paymentsUrl = base ? `${base}/admin/payments` : null;
+  const adminUrl = base ? `${base}/admin` : null;
+  const chatUrl = base ? `${base}/admin/chat` : null;
+  const telegramPanelUrl = base ? `${base}/admin/telegram` : null;
+
+  const linkRow = [
+    ...(paymentsUrl ? [{ text: "پرداخت‌ها", url: paymentsUrl }] : []),
+    ...(adminUrl ? [{ text: "داشبورد", url: adminUrl }] : []),
+  ];
+  const linkRow2 = [
+    ...(chatUrl ? [{ text: "چت", url: chatUrl }] : []),
+    ...(telegramPanelUrl ? [{ text: "تلگرام", url: telegramPanelUrl }] : []),
+  ];
+
+  return {
+    inline_keyboard: [
+      ...(linkRow.length > 0 ? [linkRow] : []),
+      ...(linkRow2.length > 0 ? [linkRow2] : []),
+      [{ text: "تازه‌سازی منو", callback_data: "admin_menu" }],
+    ].filter((row) => row.length > 0),
+  };
+}
+
+/** دستورات پیشنهادی ربات در منوی تلگرام (پس از setWebhook یک‌بار صدا زده می‌شود). */
+export async function setTelegramBotCommands() {
+  if (!getTelegramConfig().botToken) {
+    return { ok: false as const, error: "TELEGRAM_BOT_TOKEN خالی است." };
+  }
+
+  const commands = [
+    { command: "start", description: "منوی ادمین و لینک‌های پنل" },
+    { command: "help", description: "راهنمای کوتاه ربات" },
+    { command: "menu", description: "نمایش مجدد منو" },
+    { command: "report", description: "خلاصه وضعیت (پرداخت، چت، …)" },
+  ];
+
+  await telegramRequest<true>("setMyCommands", JSON.stringify({ commands }));
+  return { ok: true as const };
 }
 
 function sniffImageMimeFromBytes(bytes: Uint8Array): { mime: string; ext: string } {
@@ -317,26 +481,31 @@ function buildPaymentTelegramFormData(params: {
     }),
   );
   formData.append(params.fileField, params.file, params.file.name);
-  formData.set("reply_markup", JSON.stringify(buildInlineKeyboard(params.paymentId)));
+  formData.set("reply_markup", JSON.stringify(buildInlineKeyboard({ paymentId: params.paymentId, orderId: params.orderId })));
   return formData;
 }
 
 /** پیام متنی به چت ادمین (برای پل چت سایت ↔ تلگرام) */
-export async function sendAdminPlainTextMessage(text: string) {
+export async function sendAdminPlainTextMessage(
+  text: string,
+  options?: { reply_markup?: Record<string, unknown> },
+) {
   const { adminChatId } = getTelegramConfig();
 
   if (!adminChatId || !isTelegramConfigured()) {
     throw new Error("تنظیمات تلگرام کامل نیست.");
   }
 
-  return telegramRequest<TelegramMessage>(
-    "sendMessage",
-    JSON.stringify({
-      chat_id: adminChatId,
-      text: text.slice(0, 4090),
-      disable_web_page_preview: true,
-    }),
-  );
+  const payload: Record<string, unknown> = {
+    chat_id: adminChatId,
+    text: text.slice(0, 4090),
+    disable_web_page_preview: true,
+  };
+  if (options?.reply_markup) {
+    payload.reply_markup = options.reply_markup;
+  }
+
+  return telegramRequest<TelegramMessage>("sendMessage", JSON.stringify(payload));
 }
 
 export async function sendPaymentToTelegram(params: {
@@ -396,6 +565,37 @@ export async function sendPaymentToTelegram(params: {
       true,
     );
   }
+}
+
+export async function sendAdminPaymentOutcomeMessage(params: {
+  decision: "approve" | "reject";
+  orderId: string;
+  paymentId: string;
+  userName: string;
+  planName: string;
+  reviewNote?: string | null;
+}) {
+  if (!isTelegramConfigured()) {
+    return;
+  }
+
+  const base = getAppBaseUrl();
+  const paymentsLink = base ? `${base}/admin/payments` : null;
+  const telegramPanel = base ? `${base}/admin/telegram` : null;
+
+  const lines = [
+    "نتیجه بررسی پرداخت",
+    `وضعیت: ${params.decision === "approve" ? "تایید شد" : "رد شد"}`,
+    `سفارش: ${params.orderId}`,
+    `کاربر: ${params.userName}`,
+    `پلن: ${params.planName}`,
+    params.decision === "reject" && params.reviewNote ? `دلیل: ${params.reviewNote}` : null,
+    "",
+    paymentsLink ? `پنل پرداخت‌ها: ${paymentsLink}` : null,
+    telegramPanel ? `وب‌هوک/تنظیمات تلگرام: ${telegramPanel}` : null,
+  ].filter(Boolean);
+
+  await sendAdminPlainTextMessage(lines.join("\n"));
 }
 
 export async function answerTelegramCallback(

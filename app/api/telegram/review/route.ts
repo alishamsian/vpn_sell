@@ -3,13 +3,18 @@ import { NextResponse } from "next/server";
 import { sendConversationMessage } from "@/lib/chat";
 import {
   answerTelegramCallbackSafe,
+  buildAdminMenuReplyMarkup,
+  buildAdminWelcomeText,
   editTelegramMessage,
   fetchTelegramWebhookInfo,
   getTelegramAdminChatIdNormalized,
   getTelegramWebhookSecretNormalized,
+  sendAdminPaymentOutcomeMessage,
+  sendAdminPlainTextMessage,
   validateTelegramSecret,
 } from "@/lib/telegram";
 import { reviewPayment } from "@/lib/orders";
+import { getAdminOverview } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -42,9 +47,57 @@ type TelegramUpdate = {
   message?: TelegramInboundMessage;
 };
 
+function isInboundTelegramAdmin(message: TelegramInboundMessage) {
+  const adminChatId = getTelegramAdminChatIdNormalized();
+  if (!adminChatId) {
+    return false;
+  }
+  const chatId = message.chat?.id != null ? String(message.chat.id) : "";
+  const fromId = message.from?.id != null ? String(message.from.id) : "";
+  return chatId === adminChatId || fromId === adminChatId;
+}
+
+async function handleTelegramAdminCommands(message: TelegramInboundMessage): Promise<boolean> {
+  if (!isInboundTelegramAdmin(message) || message.from?.is_bot) {
+    return false;
+  }
+
+  const raw = message.text?.trim() ?? "";
+  if (!raw.startsWith("/")) {
+    return false;
+  }
+
+  const first = (raw.split(/\s+/)[0] ?? "").toLowerCase();
+  const cmd = first.replace(/@\w+$/, "");
+
+  if (cmd === "/start" || cmd === "/help" || cmd === "/menu") {
+    await sendAdminPlainTextMessage(buildAdminWelcomeText(), {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  if (cmd === "/report") {
+    const overview = await getAdminOverview();
+    const text = [
+      "📌 وضعیت لحظه‌ای",
+      `پرداخت در انتظار: ${overview.pendingPayments}`,
+      `سفارش در انتظار اکانت: ${overview.waitingForAccountOrders}`,
+      `گفتگوی باز: ${overview.openConversations}`,
+      `خوانده‌نشده ادمین: ${overview.unreadAdminChats}`,
+      `حساب آماده: ${overview.availableAccounts} / ${overview.totalAccounts}`,
+    ].join("\n");
+    await sendAdminPlainTextMessage(text, {
+      reply_markup: buildAdminMenuReplyMarkup(),
+    });
+    return true;
+  }
+
+  return false;
+}
+
 async function handleTelegramAdminTextReply(message: TelegramInboundMessage) {
-  const allowedChatId = getTelegramAdminChatIdNormalized();
-  if (!allowedChatId || !message.chat?.id || String(message.chat.id) !== allowedChatId) {
+  if (!isInboundTelegramAdmin(message)) {
     return;
   }
 
@@ -56,6 +109,49 @@ async function handleTelegramAdminTextReply(message: TelegramInboundMessage) {
   const text = message.text?.trim();
 
   if (!replyToId || !text || text.startsWith("/")) {
+    return;
+  }
+
+  // 1) Reply to a payment receipt message → treat as rejection reason (or commands)
+  const paymentByTelegramMessage = await prisma.payment.findFirst({
+    where: { telegramMessageId: String(replyToId) },
+    include: {
+      order: {
+        include: {
+          plan: true,
+          user: true,
+        },
+      },
+    },
+  });
+
+  if (paymentByTelegramMessage) {
+    const command = text.toLowerCase();
+    const decision: "approve" | "reject" =
+      command === "approve" || command === "تایید" || command === "تأیید" ? "approve" : "reject";
+    const note =
+      decision === "reject"
+        ? text
+        : "تایید از تلگرام (Reply)";
+
+    const result = await reviewPayment({
+      paymentId: paymentByTelegramMessage.id,
+      decision,
+      source: "TELEGRAM",
+      reviewNote: note,
+      actorId: message.from?.id ? String(message.from.id) : undefined,
+    });
+    void result;
+
+    await sendAdminPaymentOutcomeMessage({
+      decision,
+      orderId: paymentByTelegramMessage.order.id,
+      paymentId: paymentByTelegramMessage.id,
+      userName: paymentByTelegramMessage.order.user.name,
+      planName: paymentByTelegramMessage.order.plan.name,
+      reviewNote: decision === "reject" ? text : null,
+    });
+
     return;
   }
 
@@ -156,7 +252,10 @@ export async function POST(request: Request) {
 
   if (body.message && !body.callback_query) {
     try {
-      await handleTelegramAdminTextReply(body.message);
+      const handledCommand = await handleTelegramAdminCommands(body.message);
+      if (!handledCommand) {
+        await handleTelegramAdminTextReply(body.message);
+      }
     } catch (error) {
       console.error("[telegram webhook] chat reply failed:", error);
     }
@@ -183,14 +282,76 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  if (callback.data === "admin_menu") {
+    await answerTelegramCallbackSafe(callback.id, "منو ارسال شد.");
+    try {
+      await sendAdminPlainTextMessage(buildAdminWelcomeText(), {
+        reply_markup: buildAdminMenuReplyMarkup(),
+      });
+    } catch (error) {
+      console.error("[telegram webhook] admin_menu failed:", error);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   const { decision, paymentId } = parseCallbackData(callback.data);
 
-  if (!paymentId || (decision !== "approve" && decision !== "reject")) {
+  const supported =
+    decision === "approve" ||
+    decision === "reject" ||
+    decision === "need_reason" ||
+    decision === "need_info" ||
+    decision === "request_resubmit";
+
+  if (!paymentId || !supported) {
     await answerTelegramCallbackSafe(callback.id, "داده دکمه نامعتبر است.", { showAlert: true });
     return NextResponse.json({ ok: true });
   }
 
   try {
+    if (decision === "need_reason") {
+      await answerTelegramCallbackSafe(
+        callback.id,
+        "لطفاً همین پیام رسید را Reply کن و دلیل رد را بفرست. (همان متن به کاربر نمایش داده می‌شود.)",
+        { showAlert: true },
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    if (decision === "need_info" || decision === "request_resubmit") {
+      const note =
+        decision === "need_info"
+          ? "نیاز به اطلاعات بیشتر: لطفاً کد پیگیری/۴ رقم کارت/تصویر واضح‌تر را ارسال کنید."
+          : "لطفاً رسید را مجدداً با تصویر واضح و اطلاعات صحیح ارسال کنید.";
+
+      await reviewPayment({
+        paymentId,
+        decision: "reject",
+        source: "TELEGRAM",
+        reviewNote: note,
+        actorId: callback.from?.id ? String(callback.from.id) : undefined,
+      });
+
+      const payment = await prisma.payment.findUnique({
+        where: { id: paymentId },
+        include: { order: { include: { plan: true, user: true } } },
+      });
+
+      if (payment) {
+        await sendAdminPaymentOutcomeMessage({
+          decision: "reject",
+          orderId: payment.order.id,
+          paymentId,
+          userName: payment.order.user.name,
+          planName: payment.order.plan.name,
+          reviewNote: note,
+        });
+      }
+
+      await answerTelegramCallbackSafe(callback.id, "ثبت شد. کاربر می‌تواند رسید جدید بفرستد.", { showAlert: true });
+      return NextResponse.json({ ok: true });
+    }
+
     const result = await reviewPayment({
       paymentId,
       decision: decision as "approve" | "reject",
@@ -242,6 +403,17 @@ export async function POST(request: Request) {
         : "پرداخت رد شد؛ کاربر می‌تواند رسید جدید بفرستد.",
       { showAlert: true },
     );
+
+    if (payment) {
+      await sendAdminPaymentOutcomeMessage({
+        decision: decision as "approve" | "reject",
+        orderId: payment.order.id,
+        paymentId: payment.id,
+        userName: payment.order.user.name,
+        planName: payment.order.plan.name,
+        reviewNote: decision === "reject" ? payment.reviewNote : null,
+      });
+    }
   } catch (error) {
     const msg = error instanceof Error ? error.message : "خطا در بررسی پرداخت";
     console.error("[telegram webhook] reviewPayment failed:", error);

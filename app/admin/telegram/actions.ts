@@ -8,6 +8,7 @@ import {
   fetchTelegramWebhookInfo,
   getTelegramWebhookSecretNormalized,
   isTelegramConfigured,
+  setTelegramBotCommands,
   setTelegramWebhook,
 } from "@/lib/telegram";
 
@@ -84,9 +85,18 @@ export async function setWebhookFromAdminAction(
     };
   }
 
+  try {
+    const commandsResult = await setTelegramBotCommands();
+    if (!commandsResult.ok) {
+      console.warn("[telegram] setMyCommands:", commandsResult.error);
+    }
+  } catch (error) {
+    console.warn("[telegram] setMyCommands failed:", error);
+  }
+
   return {
     status: "success" as const,
-    message: "وب‌هوک تلگرام تنظیم شد.",
+    message: "وب‌هوک تلگرام تنظیم شد؛ دستورات ربات (/start، /report، …) در منوی تلگرام به‌روز شد.",
     debug: { webhookUrl, before, after },
   };
 }
