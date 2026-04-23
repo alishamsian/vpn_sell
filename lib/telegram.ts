@@ -312,6 +312,7 @@ export const TELEGRAM_ADMIN_REPLY_LABELS = {
   CATALOG: "📦 کاتالوگ",
   PLAN_NEW: "➕ پلن جدید",
   PLAN_LIST: "📋 لیست پلن‌ها",
+  STOCK_ADD: "📥 افزودن موجودی",
   COUPONS: "🎟 کوپن‌ها",
   REPORTS_SITE: "📉 گزارش‌ها",
   WALLETS: "👛 کیف‌ها",
@@ -340,6 +341,7 @@ export function buildAdminReplyKeyboardMarkup(): Record<string, unknown> {
       [L.OPEN_CHATS, L.LINKS],
       [L.USERS, L.CATALOG],
       [L.PLAN_NEW, L.PLAN_LIST],
+      [L.STOCK_ADD],
       [L.WALLET_TOPUPS, L.COUPONS],
       [L.REPORTS_SITE, L.WALLETS],
       [L.GIFT_CARDS, L.REFERRALS],
@@ -369,6 +371,7 @@ export function buildAdminWelcomeText() {
     "",
     "دستورات: /start یا /menu — منو | /report — آمار | /panel — دکمه‌های لینک پنل (فقط وقتی لازم داری)",
     "پلن‌ها: /plannew — ساخت | /planlist یا /plans — لیست و ویرایش | /plancancel — لغو ویزارد",
+    "موجودی: /stockadd — انتخاب پلن و paste کانفیگ | /stockdone — ثبت | /stockcancel — لغو",
   ].join("\n");
 }
 
@@ -451,6 +454,9 @@ export async function setTelegramBotCommands() {
     { command: "planlist", description: "لیست پلن‌ها و دکمهٔ ویرایش" },
     { command: "plans", description: "همان planlist" },
     { command: "plancancel", description: "لغو ویزارد ساخت یا ویرایش پلن" },
+    { command: "stockadd", description: "شروع افزودن موجودی اکانت به یک پلن" },
+    { command: "stockdone", description: "ثبت کانفیگ‌های جمع‌شده در تلگرام" },
+    { command: "stockcancel", description: "لغو افزودن موجودی بدون ثبت" },
   ];
 
   await telegramRequest<true>("setMyCommands", JSON.stringify({ commands }));

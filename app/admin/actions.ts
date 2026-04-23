@@ -4,7 +4,8 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/lib/auth";
-import { fulfillWaitingOrdersForPlan, reviewPayment } from "@/lib/orders";
+import { bulkIngestAccountsForPlan, formatBulkIngestSuccess } from "@/lib/inventory-bulk-ingest";
+import { reviewPayment } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 import { reviewWalletTopUp } from "@/lib/wallet-topups";
 
@@ -89,62 +90,23 @@ export async function addAccountsAction(
 
   const planId = String(formData.get("planId") ?? "").trim();
   const rawConfigs = String(formData.get("configs") ?? "");
-  const configs = rawConfigs
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
 
   if (!planId) {
     return {
       status: "error",
-      message: "لطفا یک پلن انتخاب کنید.",
+      message: "یک پلن را انتخاب کنید.",
     };
   }
 
-  if (configs.length === 0) {
-    return {
-      status: "error",
-      message: "حداقل یک خط کانفیگ وارد کنید.",
-    };
+  const result = await bulkIngestAccountsForPlan(planId, rawConfigs);
+
+  if (!result.ok) {
+    return { status: "error", message: result.message };
   }
-
-  const plan = await prisma.plan.findUnique({
-    where: {
-      id: planId,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!plan) {
-    return {
-      status: "error",
-      message: "پلن انتخاب‌شده دیگر وجود ندارد.",
-    };
-  }
-
-  await prisma.account.createMany({
-    data: configs.map((config) => ({
-      config,
-      planId,
-      status: "available",
-    })),
-  });
-
-  const fulfilledWaitingOrders = await fulfillWaitingOrdersForPlan(planId);
-
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/admin/catalog");
-  revalidatePath("/dashboard");
 
   return {
     status: "success",
-    message:
-      fulfilledWaitingOrders > 0
-        ? `${configs.length} اکانت اضافه شد و ${fulfilledWaitingOrders} سفارش منتظر، خودکار تحویل شد.`
-        : `${configs.length} اکانت با موفقیت اضافه شد.`,
+    message: formatBulkIngestSuccess(result),
   };
 }
 

@@ -17,7 +17,7 @@ export default async function AdminCatalogPage() {
       <AdminPageHeader
         eyebrow="کاتالوگ فروش"
         title="مدیریت پلن‌ها و موجودی"
-        description="پلن جدید بسازید، وضعیت موجودی هر پلن را ببینید و اکانت‌های آماده را به‌صورت گروهی وارد کنید."
+        description="پلن بسازید، موجودی را ببینید و با پنل paste و جستجوی پلن، اکانت‌ها را حرفه‌ای به کاتالوگ اضافه کنید."
         action={<AdminPill label={`${new Intl.NumberFormat("fa-IR").format(accounts.length)} اکانت`} />}
       />
 

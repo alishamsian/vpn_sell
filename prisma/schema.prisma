@@ -159,6 +159,15 @@ model TelegramPlanWizardState {
   updatedAt       DateTime @updatedAt
 }
 
+/** ویزارد افزودن موجودی اکانت از تلگرام (چند پیام + /stockdone). */
+model TelegramInventoryWizardState {
+  actorTelegramId String   @id
+  phase           String   @default("idle") // idle | pick_plan | paste_configs
+  planId          String?
+  buffer          String   @default("") @db.Text
+  updatedAt       DateTime @updatedAt
+}
+
 model Account {
   id        String        @id @default(cuid())
   config    String        @db.Text

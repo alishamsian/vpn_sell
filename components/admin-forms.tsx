@@ -1,17 +1,16 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
-import { useActionState, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { addAccountsAction, createPlanAction } from "@/app/admin/actions";
+import { createPlanAction } from "@/app/admin/actions";
+import { AdminInventoryPanel } from "@/components/admin/admin-inventory-panel";
 import { useToast } from "@/components/toast-provider";
 import { AppLoadingButtonLabel } from "@/components/ui/app-loading";
+import type { AdminPlanDashboard } from "@/lib/queries";
+
 type AdminFormsProps = {
-  plans: Array<{
-    id: string;
-    name: string;
-  }>;
+  plans: AdminPlanDashboard[];
 };
 
 type AdminActionState = {
@@ -63,195 +62,11 @@ function FormMessage({ status, message }: { status: "idle" | "success" | "error"
   );
 }
 
-type ConfigLine = {
-  id: string;
-  value: string;
-};
-
-function createLine(value = ""): ConfigLine {
-  return {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    value,
-  };
-}
-
-function AccountBulkConfigsEditor({ resetKey }: { resetKey: number }) {
-  const baseId = useId();
-  const [lines, setLines] = useState<ConfigLine[]>(() => [createLine()]);
-  const pendingFocusLineId = useRef<string | null>(null);
-
-  useEffect(() => {
-    window.setTimeout(() => {
-      setLines([createLine()]);
-    }, 0);
-  }, [resetKey]);
-
-  useEffect(() => {
-    const targetId = pendingFocusLineId.current;
-    if (!targetId) {
-      return;
-    }
-
-    pendingFocusLineId.current = null;
-    window.requestAnimationFrame(() => {
-      document.getElementById(`${baseId}-${targetId}`)?.focus();
-    });
-  }, [baseId, lines]);
-
-  const joinedConfigs = lines
-    .map((line) => line.value.trim())
-    .filter(Boolean)
-    .join("\n");
-
-  const nonEmptyCount = lines.reduce((count, line) => (line.value.trim() ? count + 1 : count), 0);
-
-  const setLineValue = (id: string, value: string) => {
-    setLines((current) => current.map((line) => (line.id === id ? { ...line, value } : line)));
-  };
-
-  const addLine = () => {
-    setLines((current) => {
-      const nextLine = createLine();
-      pendingFocusLineId.current = nextLine.id;
-      return [...current, nextLine];
-    });
-  };
-
-  const removeLine = (id: string) => {
-    setLines((current) => {
-      if (current.length <= 1) {
-        return [createLine()];
-      }
-
-      return current.filter((line) => line.id !== id);
-    });
-  };
-
-  const handlePaste = (id: string, pastedText: string) => {
-    const parts = pastedText
-      .split(/\r?\n/)
-      .map((part) => part.trim())
-      .filter(Boolean);
-
-    if (parts.length <= 1) {
-      return;
-    }
-
-    setLines((current) => {
-      const index = current.findIndex((line) => line.id === id);
-      if (index === -1) {
-        return current;
-      }
-
-      const next = [...current];
-      next[index] = { ...next[index], value: parts[0] ?? "" };
-
-      const tail = parts.slice(1).map((value) => createLine(value));
-      next.splice(index + 1, 0, ...tail);
-
-      return next;
-    });
-  };
-
-  const handleLineKeyDown = (event: KeyboardEvent<HTMLInputElement>, index: number) => {
-    if (event.key !== "Enter") {
-      return;
-    }
-
-    event.preventDefault();
-
-    if (index === lines.length - 1) {
-      addLine();
-      return;
-    }
-
-    const nextId = lines[index + 1]?.id;
-    if (nextId) {
-      pendingFocusLineId.current = nextId;
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <input type="hidden" name="configs" value={joinedConfigs} readOnly />
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm font-medium text-prose">کانفیگ‌ها</div>
-        <button
-          type="button"
-          onClick={addLine}
-          className="inline-flex items-center gap-2 rounded-full border border-stroke bg-panel px-3 py-1.5 text-xs font-semibold text-prose transition hover:border-stroke hover:bg-inset"
-        >
-          <Plus className="h-4 w-4" />
-          افزودن باکس
-        </button>
-      </div>
-
-      <div className="text-xs leading-relaxed text-faint">
-        هر باکس فقط یک کانفیگ. Enter روی آخرین باکس، باکس جدید می‌سازد. اگر چندخطی paste کنید، خودکار به چند باکس تفکیک می‌شود.
-      </div>
-
-      <div className="space-y-2">
-        {lines.map((line, index) => (
-          <div key={line.id} className="flex flex-col gap-2 sm:flex-row sm:items-start">
-            <div className="min-w-0 flex-1">
-              <label className="sr-only" htmlFor={`${baseId}-${line.id}`}>
-                کانفیگ {index + 1}
-              </label>
-              <input
-                id={`${baseId}-${line.id}`}
-                value={line.value}
-                onChange={(event) => setLineValue(line.id, event.target.value)}
-                onPaste={(event) => {
-                  const text = event.clipboardData.getData("text/plain");
-                  if (!text.includes("\n")) {
-                    return;
-                  }
-
-                  event.preventDefault();
-                  handlePaste(line.id, text);
-                }}
-                onKeyDown={(event) => handleLineKeyDown(event, index)}
-                placeholder="vmess://... / vless://... / trojan://..."
-                dir="ltr"
-                className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 font-mono text-xs outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20 sm:text-sm"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 sm:w-[7.5rem] sm:justify-end">
-              <button
-                type="button"
-                onClick={() => removeLine(line.id)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-stroke bg-panel text-prose transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                aria-label="حذف باکس"
-                title="حذف باکس"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="text-xs text-faint">
-        تعداد کانفیگ‌های آماده ارسال:{" "}
-        <span className="font-semibold text-ink">{new Intl.NumberFormat("fa-IR").format(nonEmptyCount)}</span>
-      </div>
-    </div>
-  );
-}
-
 export function AdminForms({ plans }: AdminFormsProps) {
   const [planState, planFormAction] = useActionState(createPlanAction, initialAdminActionState);
-  const [accountState, accountFormAction] = useActionState(
-    addAccountsAction,
-    initialAdminActionState,
-  );
   const { showToast } = useToast();
   const planFormRef = useRef<HTMLFormElement>(null);
-  const accountFormRef = useRef<HTMLFormElement>(null);
   const [desktopUi, setDesktopUi] = useState(false);
-  const [accountConfigsResetKey, setAccountConfigsResetKey] = useState(0);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -278,18 +93,8 @@ export function AdminForms({ plans }: AdminFormsProps) {
     }
   }, [planState.message, planState.status, showToast]);
 
-  useEffect(() => {
-    if (accountState.status === "success" && accountState.message) {
-      showToast(accountState.message, "success");
-      accountFormRef.current?.reset();
-      window.setTimeout(() => {
-        setAccountConfigsResetKey((current) => current + 1);
-      }, 0);
-    }
-  }, [accountState.message, accountState.status, showToast]);
-
   return (
-    <section className="grid gap-4 lg:grid-cols-2 lg:gap-6">
+    <section className="grid items-start gap-4 lg:grid-cols-2 lg:gap-6">
       <details
         open={desktopUi}
         className="group rounded-3xl border border-stroke bg-panel shadow-soft open:bg-panel"
@@ -375,52 +180,7 @@ export function AdminForms({ plans }: AdminFormsProps) {
         </div>
       </details>
 
-      <details
-        open={desktopUi}
-        className="group rounded-3xl border border-stroke bg-panel shadow-soft open:bg-panel"
-      >
-        <summary className="cursor-pointer list-none rounded-3xl px-5 py-4 sm:px-6 sm:py-5 [&::-webkit-details-marker]:hidden">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <h2 className="text-lg font-semibold text-ink sm:text-xl">افزودن گروهی اکانت‌ها</h2>
-              <p className="text-sm text-prose">برای پلن انتخاب‌شده، هر کانفیگ را داخل یک باکس جدا وارد کنید.</p>
-            </div>
-            <span className="shrink-0 rounded-full border border-stroke bg-inset px-3 py-1 text-[11px] font-semibold text-prose transition group-open:border-stroke group-open:bg-panel group-open:text-ink">
-              {desktopUi ? "باز" : "باز/بسته"}
-            </span>
-          </div>
-        </summary>
-
-        <div className="border-t border-stroke/70 px-5 pb-6 pt-2 sm:px-6">
-          <form ref={accountFormRef} action={accountFormAction} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="planId" className="text-sm font-medium text-prose">
-                پلن
-              </label>
-              <select
-                id="planId"
-                name="planId"
-                className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
-                defaultValue=""
-              >
-                <option value="" disabled>
-                  یک پلن انتخاب کنید
-                </option>
-                {plans.map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <AccountBulkConfigsEditor resetKey={accountConfigsResetKey} />
-
-            <SubmitButton idleLabel="افزودن اکانت‌ها" pendingLabel="در حال ذخیره..." />
-            <FormMessage status={accountState.status} message={accountState.message} />
-          </form>
-        </div>
-      </details>
+      <AdminInventoryPanel plans={plans} />
     </section>
   );
 }

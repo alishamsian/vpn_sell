@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { answerTelegramCallbackSafe, sendAdminPlainTextMessage } from "@/lib/telegram";
+import { inventoryCallbackData } from "@/lib/telegram-inventory-bot";
 
 const TG_RULE = "────────────";
 const WIZARD_TTL_MS = 30 * 60 * 1000;
@@ -116,6 +117,7 @@ async function sendPlanEditMenu(planId: string) {
         [mk("name", "نام"), mk("price", "قیمت")],
         [mk("dur", "مدت روز"), mk("max", "حداکثر کاربر")],
         [mk("dup", "📋 کپی پلن"), mk("del", "🗑 حذف")],
+        [{ text: "📥 افزودن موجودی (همین پلن)", callback_data: inventoryCallbackData("open", planId) }],
       ],
     },
   });
@@ -132,7 +134,9 @@ export async function sendPlanListMessage() {
   });
 
   if (plans.length === 0) {
-    await sendAdminPlainTextMessage(["📦 لیست پلن‌ها", TG_RULE, "هنوز پلنی ثبت نشده است.", "", "ساخت: /plannew"].join("\n"));
+    await sendAdminPlainTextMessage(
+      ["📦 لیست پلن‌ها", TG_RULE, "هنوز پلنی ثبت نشده است.", "", "ساخت: /plannew", "موجودی: /stockadd"].join("\n"),
+    );
     return;
   }
 
@@ -149,9 +153,12 @@ export async function sendPlanListMessage() {
     },
   ]);
 
-  await sendAdminPlainTextMessage(["📦 پلن‌های فعال", TG_RULE, ...lines].join("\n\n"), {
-    reply_markup: { inline_keyboard: rows },
-  });
+  await sendAdminPlainTextMessage(
+    ["📦 پلن‌های فعال", TG_RULE, ...lines, "", "موجودی: /stockadd یا دکمهٔ «افزودن موجودی»"].join("\n\n"),
+    {
+      reply_markup: { inline_keyboard: rows },
+    },
+  );
 }
 
 function assertWizardFresh(state: { updatedAt: Date }) {

@@ -36,13 +36,19 @@ import {
 } from "@/lib/queries";
 import { prisma } from "@/lib/prisma";
 import {
+  handleTelegramInventoryWizardText,
+  handleTelegramStockSlashCommands,
+  startStockAddWizard,
+  tryHandleTelegramInventoryCallback,
+} from "@/lib/telegram-inventory-bot";
+import {
   actorFromMessage,
-  clearPlanWizard,
   handleTelegramPlanWizardText,
   sendPlanListMessage,
   startPlanCreateWizard,
   tryHandleTelegramPlanCallback,
 } from "@/lib/telegram-plan-bot";
+import { clearAllTelegramWizards } from "@/lib/telegram-wizards";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -183,7 +189,7 @@ async function handleTelegramAdminReplyKeyboard(message: TelegramInboundMessage)
     if (!actorId) {
       return false;
     }
-    await clearPlanWizard(actorId);
+    await clearAllTelegramWizards(actorId);
     await startPlanCreateWizard(actorId);
     return true;
   }
@@ -191,9 +197,18 @@ async function handleTelegramAdminReplyKeyboard(message: TelegramInboundMessage)
   if (text === L.PLAN_LIST) {
     const actorId = message.from?.id != null ? String(message.from.id) : null;
     if (actorId) {
-      await clearPlanWizard(actorId);
+      await clearAllTelegramWizards(actorId);
     }
     await sendPlanListMessage();
+    return true;
+  }
+
+  if (text === L.STOCK_ADD) {
+    const actorId = message.from?.id != null ? String(message.from.id) : null;
+    if (!actorId) {
+      return false;
+    }
+    await startStockAddWizard(actorId);
     return true;
   }
 
@@ -248,7 +263,7 @@ async function handleTelegramAdminCommands(
 
   if (cmd === "/start" || cmd === "/help" || cmd === "/menu") {
     if (actorTelegramId) {
-      await clearPlanWizard(actorTelegramId);
+      await clearAllTelegramWizards(actorTelegramId);
     }
     await sendAdminOnboardingKeyboardBundle();
     return true;
@@ -256,7 +271,7 @@ async function handleTelegramAdminCommands(
 
   if (cmd === "/links" || cmd === "/panel") {
     if (actorTelegramId) {
-      await clearPlanWizard(actorTelegramId);
+      await clearAllTelegramWizards(actorTelegramId);
     }
     await sendAdminPlainTextMessage("لینک همهٔ بخش‌های پنل ادمین:", {
       reply_markup: buildAdminMenuReplyMarkup(),
@@ -266,7 +281,7 @@ async function handleTelegramAdminCommands(
 
   if (cmd === "/report") {
     if (actorTelegramId) {
-      await clearPlanWizard(actorTelegramId);
+      await clearAllTelegramWizards(actorTelegramId);
     }
     const overview = await getAdminOverview();
     await sendAdminPlainTextMessage(formatAdminOverviewForTelegram(overview));
@@ -275,9 +290,9 @@ async function handleTelegramAdminCommands(
 
   if (cmd === "/plancancel") {
     if (actorTelegramId) {
-      await clearPlanWizard(actorTelegramId);
+      await clearAllTelegramWizards(actorTelegramId);
     }
-    await sendAdminPlainTextMessage("جلسهٔ ساخت یا ویرایش پلن لغو شد.");
+    await sendAdminPlainTextMessage("جلسهٔ ساخت یا ویرایش پلن (و افزودن موجودی) لغو شد.");
     return true;
   }
 
@@ -285,17 +300,27 @@ async function handleTelegramAdminCommands(
     if (!actorTelegramId) {
       return false;
     }
-    await clearPlanWizard(actorTelegramId);
+    await clearAllTelegramWizards(actorTelegramId);
     await startPlanCreateWizard(actorTelegramId);
     return true;
   }
 
   if (cmd === "/planlist" || cmd === "/plans") {
     if (actorTelegramId) {
-      await clearPlanWizard(actorTelegramId);
+      await clearAllTelegramWizards(actorTelegramId);
     }
     await sendPlanListMessage();
     return true;
+  }
+
+  if (cmd === "/stockadd" || cmd === "/stockdone" || cmd === "/stockcancel") {
+    const handled = await handleTelegramStockSlashCommands({
+      cmd,
+      actorTelegramId,
+    });
+    if (handled) {
+      return true;
+    }
   }
 
   return false;
@@ -462,13 +487,21 @@ export async function POST(request: Request) {
       if (!handledKeyboard) {
         const handledCommand = await handleTelegramAdminCommands(body.message, actor);
         if (!handledCommand) {
-          if (actor) {
-            const wizardHandled = await handleTelegramPlanWizardText({
+          const textBody = body.message.text?.trim() ?? "";
+          const isReplyThread = body.message.reply_to_message != null;
+          if (actor && !isReplyThread) {
+            const inventoryHandled = await handleTelegramInventoryWizardText({
               actorTelegramId: actor,
-              text: body.message.text?.trim() ?? "",
+              text: textBody,
             });
-            if (!wizardHandled) {
-              await handleTelegramAdminTextReply(body.message);
+            if (!inventoryHandled) {
+              const planWizardHandled = await handleTelegramPlanWizardText({
+                actorTelegramId: actor,
+                text: textBody,
+              });
+              if (!planWizardHandled) {
+                await handleTelegramAdminTextReply(body.message);
+              }
             }
           } else {
             await handleTelegramAdminTextReply(body.message);
@@ -509,6 +542,18 @@ export async function POST(request: Request) {
       console.error("[telegram webhook] admin_menu failed:", error);
     }
     return NextResponse.json({ ok: true });
+  }
+
+  if (callback.data.startsWith("I|")) {
+    const actor = callback.from?.id != null ? String(callback.from.id) : "";
+    const inventoryHandled = await tryHandleTelegramInventoryCallback({
+      callbackQueryId: callback.id,
+      data: callback.data,
+      actorTelegramId: actor,
+    });
+    if (inventoryHandled) {
+      return NextResponse.json({ ok: true });
+    }
   }
 
   if (callback.data.startsWith("P|")) {
