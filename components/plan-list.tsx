@@ -138,11 +138,11 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(340px,1fr)]">
-      <section id="plans" className="space-y-4 scroll-mt-24">
+      <section id="plans" className="space-y-4 scroll-mt-20 sm:scroll-mt-24">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-ink">پلن‌های موجود</h2>
-            <p className="mt-1 text-sm text-prose">
+            <h2 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">پلن‌های موجود</h2>
+            <p className="mt-1 text-sm leading-7 text-prose">
               پلن‌ها بر اساس بازه اشتراک دسته‌بندی شده‌اند تا انتخاب سریع‌تر و حرفه‌ای‌تر باشد.
             </p>
           </div>
@@ -157,7 +157,7 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
               key={option.id}
               type="button"
               onClick={() => setActiveFilter(option.id)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              className={`rounded-full px-4 py-2.5 text-[13px] font-semibold transition sm:py-2 sm:text-sm sm:font-medium ${
                 activeFilter === option.id
                   ? "bg-slate-950 text-white dark:bg-slate-100 dark:text-slate-950"
                   : "border border-stroke bg-panel text-prose hover:border-stroke hover:text-ink dark:hover:bg-elevated"
@@ -168,7 +168,7 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
           ))}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
           {filteredPlans.map((plan) => {
             const disabled = plan.remainingCount === 0 || loadingPlanId !== null;
             const isLoading = loadingPlanId === plan.id;
@@ -182,9 +182,17 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
             return (
               <article
                 key={plan.id}
-                className={`group relative overflow-hidden rounded-card border p-6 shadow-soft transition duration-200 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${cardTone.card}`}
+                className={`group relative min-w-0 overflow-hidden rounded-card border p-4 shadow-soft transition duration-200 sm:p-6 ${cardTone.card}`}
               >
                 <div className={`absolute inset-0 ${cardTone.glow}`} />
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200"
+                  aria-hidden
+                >
+                  <div className="absolute -top-24 -left-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(56,189,248,0.22),transparent_60%)] blur-2xl" />
+                  <div className="absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(232,148,32,0.16),transparent_60%)] blur-2xl" />
+                  <div className="absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(56,189,248,0.65),transparent)] opacity-80" />
+                </div>
                 <div className="flex items-center justify-between gap-3">
                   <div className="relative flex flex-wrap items-center gap-2">
                     <div className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${cardTone.durationBadge}`}>
@@ -201,15 +209,15 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
                   </div>
                 </div>
 
-                <div className="relative mt-5">
-                  <h3 className="text-xl font-semibold text-ink">{plan.name}</h3>
-                  <div className="mt-2 text-3xl font-semibold tracking-tight text-ink">
+                <div className="relative mt-4 sm:mt-5">
+                  <h3 className="min-w-0 text-base font-semibold text-ink break-words sm:text-xl">{plan.name}</h3>
+                  <div className="mt-2 min-w-0 text-2xl font-semibold tracking-tight text-ink break-words sm:text-3xl">
                     {formatPrice(plan.price)}
                   </div>
-                  <div className="mt-1 text-sm text-faint">پرداخت یک‌باره</div>
+                  <div className="mt-1 text-[13px] text-faint sm:text-sm">پرداخت یک‌باره</div>
                 </div>
 
-                <div className="relative mt-5 grid grid-cols-2 gap-3 border-t border-stroke/70/80 pt-5 text-sm text-prose">
+                <div className="relative mt-4 grid grid-cols-2 gap-3 border-t border-stroke/70/80 pt-4 text-[13px] text-prose sm:mt-5 sm:pt-5 sm:text-sm">
                   <div>
                     <div className="text-xs text-faint">مدت اشتراک</div>
                     <div className="mt-1 font-medium text-ink">{formatDuration(plan.durationDays)}</div>
@@ -230,7 +238,7 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
                   </div>
                 </div>
 
-                <div className={`relative mt-5 rounded-2xl px-4 py-3 text-sm ${cardTone.note}`}>
+                <div className={`relative mt-4 rounded-2xl px-4 py-3 text-[13px] leading-6 sm:mt-5 sm:text-sm ${cardTone.note}`}>
                   ثبت سفارش، ثبت رسید و تحویل بعد از تایید ادمین
                 </div>
 
@@ -240,8 +248,8 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
                   onClick={() => handleBuy(plan.id)}
                   className={
                     plan.remainingCount === 0
-                      ? `relative mt-6 inline-flex w-full min-h-[2.75rem] cursor-not-allowed items-center justify-center rounded-2xl px-4 py-3 text-sm font-medium ${cardTone.button}`
-                      : "btn-brand relative mt-6 w-full disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-slate-950 disabled:active:scale-100"
+                      ? `relative mt-5 inline-flex w-full min-h-[2.75rem] cursor-not-allowed items-center justify-center rounded-2xl px-4 py-3 text-[13px] font-semibold sm:mt-6 sm:text-sm sm:font-medium ${cardTone.button}`
+                      : "btn-brand relative mt-5 w-full text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-slate-950 disabled:active:scale-100 sm:mt-6 sm:text-sm sm:font-semibold"
                   }
                 >
                   {!currentUser
@@ -264,7 +272,7 @@ export function PlanList({ plans, currentUser }: PlanListProps) {
         ) : null}
       </section>
 
-      <aside className="card-surface h-fit p-6">
+      <aside className="card-surface h-fit p-6 hidden lg:block">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-ink">روند خرید</h2>
           <p className="text-sm leading-6 text-prose">

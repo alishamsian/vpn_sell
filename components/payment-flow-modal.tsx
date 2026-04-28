@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import type { PaymentActionState } from "@/app/dashboard/orders/[orderId]/actions";
 import { CryptoPayCard } from "@/components/crypto-pay-card";
 import { CopyField } from "@/components/ui/copy-field";
 import { OrderPricingOptions } from "@/components/order-pricing-options";
-import { PaymentProofForm } from "@/components/payment-proof-form";
 import { TonLiveConverter } from "@/components/ton-live-converter";
 import { WalletPayCard } from "@/components/wallet-pay-card";
 import { WalletTopUpForm } from "@/components/wallet-topup-form";
@@ -77,11 +77,30 @@ function PriceRow({
 }
 
 export function PaymentFlowModal(props: PaymentFlowModalProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [method, setMethod] = useState<PaymentMethod>("WALLET");
-  const [step1Done, setStep1Done] = useState(false);
-  const [step2Done, setStep2Done] = useState(false);
+  const [proofTrackingCode, setProofTrackingCode] = useState("");
+  const [proofCardLast4, setProofCardLast4] = useState("");
+  const [proofReceipt, setProofReceipt] = useState<File | null>(null);
+  const [proofClientError, setProofClientError] = useState("");
+  const [proofSubmitError, setProofSubmitError] = useState<string | null>(null);
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
+
+  const MAX_RECEIPT_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+
+  useEffect(() => {
+    const html = document.documentElement;
+    if (open) {
+      html.dataset.paymentOpen = "1";
+      return () => {
+        delete html.dataset.paymentOpen;
+      };
+    }
+    delete html.dataset.paymentOpen;
+    return;
+  }, [open]);
 
   const payableRial = useMemo(() => Math.round(props.pricing.payable * 10), [props.pricing.payable]);
   const payableRialDisplay = useMemo(
@@ -93,24 +112,90 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
   const subtitle = props.paymentRejected
     ? props.rejectionReason
       ? "رسید قبلی رد شده است. دلیل را بخوانید، مبلغ را بررسی کنید و رسید جدید بفرستید."
-      : "رسید قبلی رد شده است. مبلغ را بررسی کنید و روش پرداخت را انتخاب کنید."
-    : "مبلغ را بررسی کنید، گزینه‌ها را اعمال کنید و سپس روش پرداخت را انتخاب کنید.";
+      : "رسید قبلی رد شده است. روش پرداخت را انتخاب کنید و رسید جدید بفرستید."
+    : "روش پرداخت را انتخاب کنید و در پایان، تایید نهایی انجام دهید.";
 
   const canUseWalletPay = useMemo(() => props.pricing.walletPayableWith20Percent > 0, [props.pricing.walletPayableWith20Percent]);
 
   const tonBaseToman = useMemo(() => {
-    if (step === 3 && method === "WALLET" && canUseWalletPay) {
+    if (step === 2 && method === "WALLET" && canUseWalletPay) {
       return props.pricing.walletPayableWith20Percent;
     }
     return props.pricing.payable;
   }, [canUseWalletPay, method, props.pricing.payable, props.pricing.walletPayableWith20Percent, step]);
 
   const tonLabel = useMemo(() => {
-    if (step === 3 && method === "WALLET" && canUseWalletPay) {
+    if (step === 2 && method === "WALLET" && canUseWalletPay) {
       return "معادل TON (با تخفیف کیف‌پول)";
     }
     return "معادل TON";
   }, [canUseWalletPay, method, step]);
+
+  function handleReceiptChange(file: File | null) {
+    if (!file) {
+      setProofReceipt(null);
+      setProofClientError("");
+      return;
+    }
+
+    if (file.size > MAX_RECEIPT_FILE_SIZE_BYTES) {
+      setProofReceipt(null);
+      setProofClientError("حجم تصویر رسید نباید بیشتر از ۲ مگابایت باشد.");
+      return;
+    }
+
+    setProofReceipt(file);
+    setProofClientError("");
+  }
+
+  function validateProofInputs() {
+    if (!proofTrackingCode.trim()) {
+      return "کد پیگیری را وارد کنید.";
+    }
+    if (method === "CARD" && proofCardLast4.trim().length !== 4) {
+      return "۴ رقم آخر کارت را درست وارد کنید.";
+    }
+    if (!proofReceipt) {
+      return "تصویر رسید را انتخاب کنید.";
+    }
+    if (proofClientError) {
+      return proofClientError;
+    }
+    return null;
+  }
+
+  async function submitProof() {
+    const error = validateProofInputs();
+    if (error) {
+      setProofSubmitError(error);
+      return;
+    }
+
+    setProofSubmitError(null);
+    setIsSubmittingProof(true);
+    try {
+      const formData = new FormData();
+      formData.set("orderId", props.orderId);
+      formData.set("amount", String(props.pricing.payable));
+      formData.set("trackingCode", proofTrackingCode.trim());
+      formData.set("cardLast4", method === "CRYPTO" ? "CRYP" : proofCardLast4.trim());
+      if (proofReceipt) {
+        formData.set("receipt", proofReceipt);
+      }
+      const result = await props.submitPaymentAction({ status: "idle", message: "" } as PaymentActionState, formData);
+      if (result.status !== "success") {
+        setProofSubmitError(result.message || "ارسال رسید انجام نشد.");
+        return;
+      }
+      router.refresh();
+      window.setTimeout(() => setOpen(false), 350);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "ارسال رسید انجام نشد.";
+      setProofSubmitError(message);
+    } finally {
+      setIsSubmittingProof(false);
+    }
+  }
 
   return (
     <>
@@ -120,8 +205,12 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
           setOpen(true);
           setStep(1);
           setMethod("WALLET");
-          setStep1Done(false);
-          setStep2Done(false);
+          setProofTrackingCode("");
+          setProofCardLast4("");
+          setProofReceipt(null);
+          setProofClientError("");
+          setProofSubmitError(null);
+          setIsSubmittingProof(false);
         }}
         className={props.triggerClassName ?? "btn-brand w-full sm:w-auto"}
       >
@@ -134,13 +223,30 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
             type="button"
             aria-label="بستن پنجره"
             className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              if (!isSubmittingProof) {
+                setOpen(false);
+              }
+            }}
           />
           <div
             role="dialog"
             aria-modal="true"
-            className="relative z-[1] flex max-h-[min(92dvh,56rem)] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border border-stroke bg-panel shadow-2xl sm:rounded-3xl"
+            className="relative z-[1] flex max-h-[100dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border border-stroke bg-panel shadow-2xl sm:max-h-[min(92dvh,56rem)] sm:rounded-3xl"
           >
+            {isSubmittingProof ? (
+              <div className="absolute inset-0 z-[5] grid place-items-center bg-panel/80 backdrop-blur-sm">
+                <div className="w-[min(22rem,calc(100%-2rem))] rounded-3xl border border-stroke bg-panel px-5 py-5 shadow-2xl">
+                  <div className="flex items-center gap-3">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-stroke border-t-sky-500" aria-hidden />
+                    <div className="text-sm font-semibold text-ink">در حال ارسال رسید…</div>
+                  </div>
+                  <div className="mt-2 text-[13px] leading-6 text-faint">
+                    لطفاً چند ثانیه صبر کنید. بعد از ثبت موفق، صفحه به‌روزرسانی می‌شود.
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-stroke/70 px-4 pb-3 pt-4 sm:px-6">
               <div className="min-w-0">
                 <h3 className="truncate text-base font-semibold text-ink">{title}</h3>
@@ -148,7 +254,11 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
               </div>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  if (!isSubmittingProof) {
+                    setOpen(false);
+                  }
+                }}
                 className="shrink-0 rounded-full border border-stroke bg-panel px-3 py-1.5 text-xs font-medium text-prose transition hover:bg-inset"
               >
                 بستن
@@ -171,35 +281,28 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
                     step === 1 ? "bg-panel text-ink shadow-sm" : "text-prose hover:text-ink"
                   }`}
                 >
-                  ۱) مبلغ و گزینه‌ها
+                  <span className="sm:hidden">۱) روش</span>
+                  <span className="hidden sm:inline">۱) روش پرداخت</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (step1Done) {
-                      setStep(2);
-                    }
-                  }}
-                  disabled={!step1Done}
+                  onClick={() => setStep(2)}
                   className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm ${
                     step === 2 ? "bg-panel text-ink shadow-sm" : "text-prose hover:text-ink"
-                  } ${!step1Done ? "cursor-not-allowed opacity-55 hover:text-prose" : ""}`}
+                  }`}
                 >
-                  ۲) روش پرداخت
+                  <span className="sm:hidden">۲) اطلاعات</span>
+                  <span className="hidden sm:inline">۲) اطلاعات پرداخت</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (step2Done) {
-                      setStep(3);
-                    }
-                  }}
-                  disabled={!step2Done}
+                  onClick={() => setStep(3)}
                   className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm ${
                     step === 3 ? "bg-panel text-ink shadow-sm" : "text-prose hover:text-ink"
-                  } ${!step2Done ? "cursor-not-allowed opacity-55 hover:text-prose" : ""}`}
+                  }`}
                 >
-                  ۳) انجام پرداخت
+                  <span className="sm:hidden">۳) تایید</span>
+                  <span className="hidden sm:inline">۳) تایید نهایی</span>
                 </button>
               </div>
             </div>
@@ -208,90 +311,70 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
               <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.55fr)]">
                 <div className="space-y-6">
                   {step === 1 ? (
-                    <>
-                      <OrderPricingOptions action={props.applyPricingOptionsAction} />
-                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-stroke bg-inset px-4 py-4">
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-faint">مبلغ قابل پرداخت</div>
-                          <div className="text-lg font-semibold text-ink">{formatPrice(props.pricing.payable)}</div>
-                        </div>
-                        <div className="w-full sm:w-auto">
-                          <button
-                            type="button"
-                            className="btn-brand w-full sm:w-auto"
-                            onClick={() => {
-                              setStep1Done(true);
-                              setStep(2);
-                            }}
-                          >
-                            ادامه
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  ) : null}
+                    <div className="rounded-3xl border border-stroke bg-panel p-5 shadow-soft sm:p-6">
+                      <h4 className="text-base font-semibold text-ink sm:text-lg">روش پرداخت</h4>
+                      <p className="mt-1 text-[13px] leading-6 text-faint sm:mt-2 sm:text-sm sm:leading-7 sm:text-prose">
+                        یک روش را انتخاب کنید.
+                      </p>
 
-                  {step === 2 ? (
-                    <div className="rounded-3xl border border-stroke bg-panel p-6 shadow-soft">
-                      <h4 className="text-lg font-semibold text-ink">انتخاب روش پرداخت</h4>
-                      <p className="mt-2 text-sm leading-7 text-prose">یک روش را انتخاب کنید و سپس «ادامه» را بزنید.</p>
-
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="mt-4 grid gap-2 sm:gap-3 sm:grid-cols-2">
                         <button
                           type="button"
                           onClick={() => setMethod("WALLET")}
                           disabled={!canUseWalletPay}
-                          className={`rounded-3xl border p-5 text-right transition ${
+                          className={`rounded-2xl border p-4 text-right transition sm:rounded-3xl sm:p-5 ${
                             method === "WALLET"
                               ? "border-transparent bg-slate-950 text-white dark:bg-elevated dark:text-ink"
                               : "border-stroke bg-panel text-ink hover:bg-elevated"
                           } ${!canUseWalletPay ? "opacity-60" : ""}`}
                         >
                           <div className="text-sm font-semibold">کیف‌پول (۲۰٪ تخفیف)</div>
-                          <div className={`mt-2 text-xs leading-6 ${method === "WALLET" ? "text-white/80 dark:text-prose" : "text-faint"}`}>
-                            پرداخت کامل داخل سایت، بدون نیاز به رسید.
+                          <div
+                            className={`mt-1 text-[12px] leading-6 ${method === "WALLET" ? "text-white/80 dark:text-prose" : "text-faint"}`}
+                          >
+                            بدون رسید
                           </div>
                         </button>
                         <button
                           type="button"
                           onClick={() => setMethod("CARD")}
-                          className={`rounded-3xl border p-5 text-right transition ${
+                          className={`rounded-2xl border p-4 text-right transition sm:rounded-3xl sm:p-5 ${
                             method === "CARD"
                               ? "border-transparent bg-slate-950 text-white dark:bg-elevated dark:text-ink"
                               : "border-stroke bg-panel text-ink hover:bg-elevated"
                           }`}
                         >
                           <div className="text-sm font-semibold">کارت‌به‌کارت</div>
-                          <div className={`mt-2 text-xs leading-6 ${method === "CARD" ? "text-white/80 dark:text-prose" : "text-faint"}`}>
-                            واریز و سپس ثبت رسید برای بررسی.
+                          <div
+                            className={`mt-1 text-[12px] leading-6 ${method === "CARD" ? "text-white/80 dark:text-prose" : "text-faint"}`}
+                          >
+                            واریز + رسید
                           </div>
                         </button>
                         <button
                           type="button"
                           onClick={() => setMethod("CRYPTO")}
-                          className={`rounded-3xl border p-5 text-right transition sm:col-span-2 ${
+                          className={`rounded-2xl border p-4 text-right transition sm:col-span-2 sm:rounded-3xl sm:p-5 ${
                             method === "CRYPTO"
                               ? "border-transparent bg-slate-950 text-white dark:bg-elevated dark:text-ink"
                               : "border-stroke bg-panel text-ink hover:bg-elevated"
                           }`}
                         >
                           <div className="text-sm font-semibold">ارز دیجیتال (TON)</div>
-                          <div className={`mt-2 text-xs leading-6 ${method === "CRYPTO" ? "text-white/80 dark:text-prose" : "text-faint"}`}>
-                            پرداخت با TON و ثبت هش تراکنش برای بررسی.
+                          <div
+                            className={`mt-1 text-[12px] leading-6 ${method === "CRYPTO" ? "text-white/80 dark:text-prose" : "text-faint"}`}
+                          >
+                            پرداخت + هش
                           </div>
                         </button>
                       </div>
 
                       <div className="mt-6 flex flex-wrap gap-3">
-                        <button type="button" className="rounded-2xl border border-stroke bg-panel px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-inset" onClick={() => setStep(1)}>
-                          برگشت
-                        </button>
                         <button
                           type="button"
                           className="btn-brand"
                           onClick={() => {
-                            setStep2Done(true);
-                            setStep(3);
+                            setStep(2);
                           }}
                         >
                           ادامه
@@ -300,22 +383,27 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
                     </div>
                   ) : null}
 
-                  {step === 3 ? (
+                  {step === 2 ? (
                     method === "WALLET" ? (
                       <div className="space-y-4">
+                        <details className="rounded-3xl border border-stroke bg-panel shadow-soft">
+                          <summary className="cursor-pointer select-none bg-inset px-5 py-4 text-sm font-semibold text-ink hover:bg-elevated">
+                            کد تخفیف و گزینه‌ها (اختیاری)
+                          </summary>
+                          <div className="px-5 pb-5">
+                            <OrderPricingOptions action={props.applyPricingOptionsAction} />
+                          </div>
+                        </details>
                         <WalletPayCard
                           payableToman={props.pricing.walletPayableWith20Percent}
                           action={props.payWithWalletAction}
                         />
                         {props.submitWalletTopUpAction ? (
-                          <div className="overflow-hidden rounded-3xl border border-stroke bg-panel shadow-soft">
-                            <div className="border-b border-stroke/70 bg-inset px-5 py-4">
-                              <h4 className="text-base font-semibold text-ink">افزایش اعتبار کیف‌پول (مبلغ دلخواه)</h4>
-                              <p className="mt-1 text-sm leading-7 text-prose">
-                                مبلغ دلخواه را کارت‌به‌کارت کنید و رسید را ثبت کنید تا بعد از تایید ادمین به کیف‌پول اضافه شود.
-                              </p>
-                            </div>
-                            <div className="space-y-4 px-5 py-5">
+                          <details className="rounded-3xl border border-stroke bg-panel shadow-soft">
+                            <summary className="cursor-pointer select-none px-5 py-4 text-sm font-semibold text-ink hover:bg-inset">
+                              شارژ کیف‌پول (اختیاری)
+                            </summary>
+                            <div className="space-y-4 px-5 pb-5">
                               <div className="grid gap-3">
                                 <CopyField label="شماره کارت" value={props.card.number} />
                                 <div className="grid gap-3 sm:grid-cols-2">
@@ -330,40 +418,92 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          </details>
                         ) : null}
                       </div>
                     ) : method === "CRYPTO" ? (
                       <div className="space-y-4">
+                        <details className="rounded-3xl border border-stroke bg-panel shadow-soft">
+                          <summary className="cursor-pointer select-none bg-inset px-5 py-4 text-sm font-semibold text-ink hover:bg-elevated">
+                            کد تخفیف و گزینه‌ها (اختیاری)
+                          </summary>
+                          <div className="px-5 pb-5">
+                            <OrderPricingOptions action={props.applyPricingOptionsAction} />
+                          </div>
+                        </details>
                         <CryptoPayCard walletAddress={props.tonWalletAddress} tomanAmount={tonBaseToman} />
                         <section className="overflow-hidden rounded-3xl border border-stroke bg-panel shadow-soft">
                           <div className="border-b border-stroke/70 bg-inset px-5 py-4">
-                            <h4 className="text-base font-semibold text-ink">ثبت هش تراکنش</h4>
-                            <p className="mt-1 text-sm leading-7 text-prose">
-                              بعد از انتقال، هش تراکنش را وارد کنید و تصویر رسید/اسکرین‌شات انتقال را هم ارسال کنید.
+                            <h4 className="text-base font-semibold text-ink">هش تراکنش</h4>
+                            <p className="mt-1 text-[13px] leading-6 text-faint sm:text-sm sm:leading-7 sm:text-prose">
+                              هش + تصویر رسید را وارد کنید؛ در مرحله بعد تایید نهایی می‌کنید.
                             </p>
                           </div>
                           <div className="px-5 py-5">
-                            <PaymentProofForm
-                              orderId={props.orderId}
-                              amount={String(props.pricing.payable)}
-                              action={props.submitPaymentAction}
-                              showAmountField={false}
-                              trackingLabel="هش تراکنش"
-                              trackingPlaceholder="Tx Hash"
-                              showCardLast4Field={false}
-                              cardLast4Default="CRYP"
-                            />
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <label htmlFor="trackingCode" className="text-sm font-medium text-prose">
+                                  هش تراکنش
+                                </label>
+                                <input
+                                  id="trackingCode"
+                                  dir="ltr"
+                                  value={proofTrackingCode}
+                                  onChange={(e) => setProofTrackingCode(e.target.value)}
+                                  placeholder="Tx Hash"
+                                  className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <label htmlFor="receipt" className="text-sm font-medium text-prose">
+                                  تصویر رسید
+                                </label>
+                                <input
+                                  id="receipt"
+                                  type="file"
+                                  accept="image/png,image/jpeg,image/webp"
+                                  onChange={(e) => handleReceiptChange(e.currentTarget.files?.[0] ?? null)}
+                                  className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 text-sm outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
+                                />
+                                <div className="text-xs text-faint">حداکثر حجم مجاز: ۲ مگابایت</div>
+                              </div>
+
+                              <button
+                                type="button"
+                                className="btn-brand w-full"
+                                onClick={() => {
+                                  const err = validateProofInputs();
+                                  if (err) {
+                                    setProofSubmitError(err);
+                                    return;
+                                  }
+                                  setProofSubmitError(null);
+                                  setStep(3);
+                                }}
+                              >
+                                ادامه (تایید نهایی)
+                              </button>
+                            </div>
                           </div>
                         </section>
                       </div>
                     ) : (
                       <div className="space-y-4">
+                        <details className="rounded-3xl border border-stroke bg-panel shadow-soft">
+                          <summary className="cursor-pointer select-none bg-inset px-5 py-4 text-sm font-semibold text-ink hover:bg-elevated">
+                            کد تخفیف و گزینه‌ها (اختیاری)
+                          </summary>
+                          <div className="px-5 pb-5">
+                            <OrderPricingOptions action={props.applyPricingOptionsAction} />
+                          </div>
+                        </details>
+
                         <section className="overflow-hidden rounded-3xl border border-stroke bg-panel shadow-soft">
                           <div className="border-b border-stroke/70 bg-inset px-5 py-4">
-                            <h4 className="text-base font-semibold text-ink">اطلاعات کارت برای واریز</h4>
-                            <p className="mt-1 text-sm leading-7 text-prose">
-                              مبلغ سفارش ثابت است. بعد از واریز، رسید را در بخش پایین ثبت کنید.
+                            <h4 className="text-base font-semibold text-ink">اطلاعات واریز</h4>
+                            <p className="mt-1 text-[13px] leading-6 text-faint sm:text-sm sm:leading-7 sm:text-prose">
+                              مبلغ و شماره کارت را کپی کنید و بعد رسید را ثبت کنید.
                             </p>
                           </div>
                           <div className="space-y-3 px-5 py-5">
@@ -375,28 +515,153 @@ export function PaymentFlowModal(props: PaymentFlowModalProps) {
                             </div>
                           </div>
                         </section>
+
                         <section className="overflow-hidden rounded-3xl border border-stroke bg-panel shadow-soft">
                           <div className="border-b border-stroke/70 bg-inset px-5 py-4">
-                            <h4 className="text-base font-semibold text-ink">ثبت رسید پرداخت</h4>
-                            <p className="mt-1 text-sm leading-7 text-prose">
-                              رسید را ارسال کنید تا بررسی شود. پیام موفقیت/خطا به‌صورت toast نمایش داده می‌شود.
+                            <h4 className="text-base font-semibold text-ink">ثبت رسید</h4>
+                            <p className="mt-1 text-[13px] leading-6 text-faint sm:text-sm sm:leading-7 sm:text-prose">
+                              بعد از واریز، اطلاعات را وارد کنید؛ در مرحله بعد تایید نهایی می‌کنید.
                             </p>
                           </div>
                           <div className="px-5 py-5">
-                          <PaymentProofForm
-                            orderId={props.orderId}
-                            amount={String(props.pricing.payable)}
-                            action={props.submitPaymentAction}
-                            showAmountField={false}
-                          />
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <label htmlFor="trackingCode" className="text-sm font-medium text-prose">
+                                  کد پیگیری
+                                </label>
+                                <input
+                                  id="trackingCode"
+                                  dir="ltr"
+                                  value={proofTrackingCode}
+                                  onChange={(e) => setProofTrackingCode(e.target.value)}
+                                  placeholder="مثلا 123456"
+                                  className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <label htmlFor="cardLast4" className="text-sm font-medium text-prose">
+                                  ۴ رقم آخر کارت پرداخت‌کننده
+                                </label>
+                                <input
+                                  id="cardLast4"
+                                  dir="ltr"
+                                  maxLength={4}
+                                  value={proofCardLast4}
+                                  onChange={(e) => setProofCardLast4(e.target.value)}
+                                  placeholder="1234"
+                                  className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <label htmlFor="receipt" className="text-sm font-medium text-prose">
+                                  تصویر رسید
+                                </label>
+                                <input
+                                  id="receipt"
+                                  type="file"
+                                  accept="image/png,image/jpeg,image/webp"
+                                  onChange={(e) => handleReceiptChange(e.currentTarget.files?.[0] ?? null)}
+                                  className="w-full rounded-2xl border border-stroke bg-panel px-4 py-3 text-sm outline-none transition focus:border-faint/60 focus:ring-2 focus:ring-brand-cyan/20"
+                                />
+                                <div className="text-xs text-faint">حداکثر حجم مجاز: ۲ مگابایت</div>
+                              </div>
+
+                              <button
+                                type="button"
+                                className="btn-brand w-full"
+                                onClick={() => {
+                                  const err = validateProofInputs();
+                                  if (err) {
+                                    setProofSubmitError(err);
+                                    return;
+                                  }
+                                  setProofSubmitError(null);
+                                  setStep(3);
+                                }}
+                              >
+                                ادامه (تایید نهایی)
+                              </button>
+                            </div>
                           </div>
                         </section>
                       </div>
                     )
                   ) : null}
+
+                  {step === 3 ? (
+                    method === "CARD" || method === "CRYPTO" ? (
+                      <section className="overflow-hidden rounded-3xl border border-stroke bg-panel shadow-soft">
+                        <div className="border-b border-stroke/70 bg-inset px-5 py-4">
+                          <h4 className="text-base font-semibold text-ink">تایید نهایی</h4>
+                          <p className="mt-1 text-[13px] leading-6 text-faint sm:text-sm sm:leading-7 sm:text-prose">
+                            اگر اطلاعات درست است، تایید کنید تا رسید ارسال شود.
+                          </p>
+                        </div>
+                        <div className="space-y-3 px-5 py-5 text-[13px] text-prose sm:text-sm">
+                          <div className="rounded-2xl border border-stroke bg-inset px-4 py-3">
+                            <div className="text-xs font-medium text-faint">مبلغ</div>
+                            <div className="mt-1 font-semibold text-ink">{formatPrice(props.pricing.payable)}</div>
+                          </div>
+                          <div className="rounded-2xl border border-stroke bg-inset px-4 py-3">
+                            <div className="text-xs font-medium text-faint">
+                              {method === "CRYPTO" ? "هش تراکنش" : "کد پیگیری"}
+                            </div>
+                            <div className="mt-1 font-semibold text-ink break-words" dir="ltr">
+                              {proofTrackingCode || "-"}
+                            </div>
+                          </div>
+                          {method === "CARD" ? (
+                            <div className="rounded-2xl border border-stroke bg-inset px-4 py-3">
+                              <div className="text-xs font-medium text-faint">۴ رقم آخر کارت</div>
+                              <div className="mt-1 font-semibold text-ink" dir="ltr">
+                                {proofCardLast4 || "-"}
+                              </div>
+                            </div>
+                          ) : null}
+                          <div className="rounded-2xl border border-stroke bg-inset px-4 py-3">
+                            <div className="text-xs font-medium text-faint">فایل رسید</div>
+                            <div className="mt-1 font-semibold text-ink break-words" dir="ltr">
+                              {proofReceipt?.name ?? "-"}
+                            </div>
+                          </div>
+
+                          {proofSubmitError ? (
+                            <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">
+                              {proofSubmitError}
+                            </div>
+                          ) : null}
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <button
+                              type="button"
+                              className="rounded-2xl border border-stroke bg-panel px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-inset"
+                              onClick={() => setStep(2)}
+                              disabled={isSubmittingProof}
+                            >
+                              برگشت
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-brand w-full"
+                              onClick={() => void submitProof()}
+                              disabled={isSubmittingProof}
+                            >
+                              {isSubmittingProof ? "در حال ارسال…" : "تایید و ارسال رسید"}
+                            </button>
+                          </div>
+                        </div>
+                      </section>
+                    ) : (
+                      <div className="rounded-3xl border border-stroke bg-panel p-5 text-sm text-prose shadow-soft">
+                        برای این روش پرداخت، تایید نهایی لازم نیست.
+                      </div>
+                    )
+                  ) : null}
                 </div>
 
-                <aside className="space-y-6">
+                <aside className="space-y-6 hidden lg:block">
                   <section className="rounded-3xl border border-stroke bg-panel p-6 shadow-soft">
                     <h4 className="text-lg font-semibold text-ink">خلاصه مبلغ</h4>
                     <div className="mt-4 space-y-3 text-sm">

@@ -40,9 +40,18 @@ export default async function DashboardPage() {
   );
   const notificationsPreview = notifications.slice(0, 3);
 
+  const actionRequiredOrders = orders.filter(
+    (order) => order.status === "PENDING_PAYMENT" || order.payment?.status === "REJECTED",
+  );
+  const reviewOrders = orders.filter(
+    (order) => order.status === "PAYMENT_SUBMITTED" || order.payment?.status === "PENDING",
+  );
+  const waitingOrders = orders.filter((order) => order.status === "WAITING_FOR_ACCOUNT");
+  const fulfilled = orders.filter((order) => order.status === "FULFILLED");
+
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl border border-stroke bg-panel p-6 shadow-soft sm:p-8">
+      <section className="rounded-3xl border border-stroke bg-panel p-5 shadow-soft sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
             <div className="text-sm font-medium text-faint">داشبورد کاربری</div>
@@ -54,20 +63,20 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Link href="/" className="btn-brand">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link href="/#plans" className="btn-brand w-full sm:w-auto">
               ثبت سفارش جدید
             </Link>
             <Link
               href="/dashboard/chat"
-              className="inline-flex min-h-[2.75rem] items-center justify-center rounded-2xl border border-stroke bg-panel px-5 py-3 text-sm font-medium text-prose shadow-sm transition hover:border-stroke hover:bg-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/25 focus-visible:ring-offset-2"
+              className="inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-2xl border border-stroke bg-panel px-5 py-3 text-sm font-medium text-prose shadow-sm transition hover:border-stroke hover:bg-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/25 focus-visible:ring-offset-2 sm:w-auto"
             >
               چت با پشتیبانی
             </Link>
           </div>
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-6 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
           <DashboardStatChip label="کل سفارش‌ها" value={toPersianNumber(totalOrders)} tone="default" />
           <DashboardStatChip label="تحویل‌شده" value={toPersianNumber(fulfilledOrders)} tone="success" />
           <DashboardStatChip label="نیازمند اقدام" value={toPersianNumber(pendingOrders)} tone="warning" />
@@ -76,88 +85,6 @@ export default async function DashboardPage() {
           <DashboardStatChip label="نزدیک انقضا" value={toPersianNumber(expiringOrders.length)} tone="warning" />
           <DashboardStatChip label="مجموع پرداخت موفق" value={formatPrice(totalSpent)} tone="default" />
         </div>
-      </section>
-
-      {expiringOrders.length > 0 || expiredOrders.length > 0 ? (
-        <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-soft dark:border-amber-800/60 dark:bg-amber-950/40">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-amber-950 dark:text-amber-100">یادآور تمدید اشتراک</h2>
-              <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
-                {expiredOrders.length > 0
-                  ? "بعضی از اشتراک‌های شما منقضی شده یا به پایان نزدیک هستند."
-                  : "برخی از اشتراک‌های فعال شما در چند روز آینده منقضی می‌شوند."}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3">
-            {[...expiredOrders, ...expiringOrders].slice(0, 3).map((order) => {
-              const expiryStatus = getExpiryStatus(order.expiresAt);
-
-              return (
-                <Link
-                  key={order.id}
-                  href={`/dashboard/orders/${order.id}`}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-panel/80 px-4 py-3 text-sm transition hover:border-amber-300"
-                >
-                  <div className="font-semibold text-ink">{order.plan.name}</div>
-                  <div className="text-prose">
-                    {expiryStatus === "expired"
-                      ? "اشتراک منقضی شده است"
-                      : `${formatRemainingDays(order.expiresAt)} | اعتبار تا ${formatDate(order.expiresAt!)}`}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="rounded-3xl border border-stroke bg-panel p-6 shadow-soft">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-ink">اعلان‌ها</h2>
-            <p className="mt-1 text-sm text-prose">نتیجه بررسی‌ها و تغییرات مهم سفارش‌ها.</p>
-          </div>
-        </div>
-
-        {notifications.length === 0 ? (
-          <div className="mt-5 rounded-2xl border border-dashed border-stroke bg-inset px-4 py-8 text-center text-sm text-faint">
-            هنوز اعلانی برای شما ثبت نشده است.
-          </div>
-        ) : (
-          <div className="mt-5 space-y-3">
-            {notificationsPreview.map((notification) => (
-              <div key={notification.id} className="rounded-2xl border border-stroke bg-inset px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-ink">{notification.title}</div>
-                  <div className="text-xs text-faint">{formatDateTime(notification.createdAt)}</div>
-                </div>
-                <div className="mt-1 text-sm leading-6 text-prose">{notification.message}</div>
-              </div>
-            ))}
-
-            {notifications.length > notificationsPreview.length ? (
-              <details className="rounded-2xl border border-stroke bg-panel">
-                <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-prose hover:bg-inset">
-                  نمایش همه اعلان‌ها
-                </summary>
-                <div className="space-y-3 px-4 pb-4">
-                  {notifications.slice(notificationsPreview.length).map((notification) => (
-                    <div key={notification.id} className="rounded-2xl border border-stroke bg-inset px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="text-sm font-semibold text-ink">{notification.title}</div>
-                        <div className="text-xs text-faint">{formatDateTime(notification.createdAt)}</div>
-                      </div>
-                      <div className="mt-1 text-sm leading-6 text-prose">{notification.message}</div>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            ) : null}
-          </div>
-        )}
       </section>
 
       <section className="rounded-card border border-stroke bg-panel p-6 shadow-soft sm:p-8">
@@ -177,10 +104,70 @@ export default async function DashboardPage() {
           ) : null}
         </div>
 
-        <div className="mt-8 grid gap-5">
-          {orders.map((order) => (
-            <DashboardOrderCard key={order.id} order={order} />
-          ))}
+        <div className="mt-8 space-y-8">
+          {actionRequiredOrders.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-bold text-ink">نیازمند اقدام</h3>
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/60">
+                  {toPersianNumber(actionRequiredOrders.length)}
+                </span>
+              </div>
+              <div className="mt-4 grid gap-5">
+                {actionRequiredOrders.map((order) => (
+                  <DashboardOrderCard key={order.id} order={order} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {reviewOrders.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-bold text-ink">در حال بررسی</h3>
+                <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-800 ring-1 ring-sky-200 dark:bg-sky-950/40 dark:text-sky-200 dark:ring-sky-800/60">
+                  {toPersianNumber(reviewOrders.length)}
+                </span>
+              </div>
+              <div className="mt-4 grid gap-5">
+                {reviewOrders.map((order) => (
+                  <DashboardOrderCard key={order.id} order={order} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {waitingOrders.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-bold text-ink">در انتظار تحویل</h3>
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/60">
+                  {toPersianNumber(waitingOrders.length)}
+                </span>
+              </div>
+              <div className="mt-4 grid gap-5">
+                {waitingOrders.map((order) => (
+                  <DashboardOrderCard key={order.id} order={order} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {fulfilled.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-bold text-ink">تحویل‌شده</h3>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-800/60">
+                  {toPersianNumber(fulfilled.length)}
+                </span>
+              </div>
+              <div className="mt-4 grid gap-5">
+                {fulfilled.map((order) => (
+                  <DashboardOrderCard key={order.id} order={order} />
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {orders.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-stroke bg-inset/50 px-6 py-14 text-center">
@@ -197,6 +184,86 @@ export default async function DashboardPage() {
             </div>
           ) : null}
         </div>
+      </section>
+
+      <section className="rounded-3xl border border-stroke bg-panel p-5 shadow-soft sm:p-6">
+        <details className="rounded-2xl border border-stroke bg-panel">
+          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-ink hover:bg-inset">
+            اعلان‌ها و یادآورها
+          </summary>
+          <div className="space-y-6 px-4 pb-4 pt-4">
+            {expiringOrders.length > 0 || expiredOrders.length > 0 ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/60 dark:bg-amber-950/40">
+                <div className="text-sm font-semibold text-amber-950 dark:text-amber-100">یادآور تمدید</div>
+                <div className="mt-1 text-[13px] leading-6 text-amber-800 dark:text-amber-200">
+                  {expiredOrders.length > 0
+                    ? "برخی اشتراک‌ها منقضی شده یا نزدیک پایان هستند."
+                    : "برخی اشتراک‌ها در چند روز آینده منقضی می‌شوند."}
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {[...expiredOrders, ...expiringOrders].slice(0, 3).map((order) => {
+                    const expiryStatus = getExpiryStatus(order.expiresAt);
+                    return (
+                      <Link
+                        key={order.id}
+                        href={`/dashboard/orders/${order.id}`}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-panel/80 px-4 py-3 text-sm transition hover:border-amber-300"
+                      >
+                        <div className="font-semibold text-ink">{order.plan.name}</div>
+                        <div className="text-prose">
+                          {expiryStatus === "expired"
+                            ? "منقضی شده"
+                            : `${formatRemainingDays(order.expiresAt)} | تا ${formatDate(order.expiresAt!)}`}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-stroke bg-inset px-4 py-5 text-center text-sm text-faint">
+                یادآوری فعالی ندارید.
+              </div>
+            )}
+
+            {notifications.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-stroke bg-inset px-4 py-5 text-center text-sm text-faint">
+                هنوز اعلانی برای شما ثبت نشده است.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {notificationsPreview.map((notification) => (
+                  <div key={notification.id} className="rounded-2xl border border-stroke bg-inset px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-sm font-semibold text-ink">{notification.title}</div>
+                      <div className="text-xs text-faint">{formatDateTime(notification.createdAt)}</div>
+                    </div>
+                    <div className="mt-1 text-sm leading-6 text-prose">{notification.message}</div>
+                  </div>
+                ))}
+
+                {notifications.length > notificationsPreview.length ? (
+                  <details className="rounded-2xl border border-stroke bg-panel">
+                    <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-prose hover:bg-inset">
+                      نمایش همه اعلان‌ها
+                    </summary>
+                    <div className="space-y-3 px-4 pb-4">
+                      {notifications.slice(notificationsPreview.length).map((notification) => (
+                        <div key={notification.id} className="rounded-2xl border border-stroke bg-inset px-4 py-3">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="text-sm font-semibold text-ink">{notification.title}</div>
+                            <div className="text-xs text-faint">{formatDateTime(notification.createdAt)}</div>
+                          </div>
+                          <div className="mt-1 text-sm leading-6 text-prose">{notification.message}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+              </div>
+            )}
+          </div>
+        </details>
       </section>
     </div>
   );
@@ -496,7 +563,9 @@ function DashboardStatChip({
         : "border-stroke bg-panel text-prose";
 
   return (
-    <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold ${className}`}>
+    <div
+      className={`inline-flex shrink-0 snap-start items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold ${className}`}
+    >
       <span className="text-[11px] font-medium opacity-80">{label}</span>
       <span className="text-sm font-semibold text-ink">{value}</span>
     </div>

@@ -23,7 +23,7 @@ export function FloatingChatGuestWidget() {
 
       {isOpen ? (
         <div
-          className="fixed bottom-24 inset-inline-start-4 w-[min(23rem,calc(100vw-2rem))]"
+          className="fixed bottom-24 inset-x-4 w-auto max-w-[23rem]"
           style={{ zIndex: 99999 }}
         >
           <div className="overflow-hidden rounded-shell border border-stroke bg-panel shadow-2xl shadow-black/10 dark:shadow-black/40">

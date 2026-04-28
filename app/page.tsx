@@ -24,7 +24,7 @@ export default async function HomePage() {
   const totalInventory = plans.reduce((sum, plan) => sum + plan.remainingCount, 0);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-9 sm:space-y-10">
       {plansLoadError ? (
         <div
           className="rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100"
@@ -41,8 +41,16 @@ export default async function HomePage() {
           </p>
         </div>
       ) : null}
-      <section className="card-surface relative overflow-hidden px-5 py-8 shadow-soft sm:px-10 sm:py-12">
+      <section className="card-surface relative overflow-hidden px-5 py-7 shadow-soft sm:px-10 sm:py-12">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.14),transparent_30%),radial-gradient(circle_at_left,rgba(56,189,248,0.08),transparent_24%),linear-gradient(135deg,rgba(239,246,255,0.6),transparent_45%)]" />
+        <div
+          className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(56,189,248,0.22),transparent_60%)] blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(232,148,32,0.16),transparent_60%)] blur-3xl"
+          aria-hidden
+        />
         <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_320px] lg:items-center">
           <div className="hero-stagger space-y-5">
             <span className="pill-brand">
@@ -50,33 +58,38 @@ export default async function HomePage() {
               VPN Alish — خرید مطمئن، ثبت سفارش شفاف، تحویل بعد از تایید
             </span>
 
-            <div className="space-y-4">
-              <h1 className="max-w-3xl text-[1.65rem] font-semibold leading-[1.35] tracking-tight text-ink sm:text-4xl sm:leading-tight lg:text-5xl">
+            <div className="space-y-3 sm:space-y-4">
+              <h1 className="max-w-3xl text-[1.55rem] font-semibold leading-[1.42] tracking-tight text-ink sm:text-4xl sm:leading-tight lg:text-5xl">
                 پلن مناسب خودت را انتخاب کن، رسید را ثبت کن و کانفیگ را امن تحویل بگیر.
               </h1>
-              <p className="max-w-2xl text-sm leading-7 text-prose sm:text-base sm:leading-8 lg:text-lg">
-                موجودی واقعی نمایش داده می‌شود، سفارش با کد اختصاصی ثبت می‌شود و بعد از تایید
-                پرداخت، کانفیگ فقط برای همان سفارش داخل پنل کاربری تحویل داده می‌شود.
+              <p className="max-w-2xl text-sm leading-7 text-prose hidden sm:block sm:text-base sm:leading-8 lg:text-lg">
+                موجودی واقعی نمایش داده می‌شود، سفارش با کد اختصاصی ثبت می‌شود و بعد از تایید پرداخت،
+                کانفیگ فقط برای همان سفارش داخل پنل کاربری تحویل داده می‌شود.
+              </p>
+              <p className="max-w-2xl text-sm leading-7 text-prose sm:hidden">
+                فقط پلن را انتخاب کن و سفارش را ثبت کن؛ بقیه مراحل داخل داشبورد انجام می‌شود.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Link href="#plans" className="btn-brand min-w-[10.5rem]">
+            <div className="grid gap-3 sm:flex sm:flex-wrap">
+              <Link href="#plans" className="btn-brand w-full sm:min-w-[10.5rem] sm:w-auto">
                 مشاهده پلن‌ها
               </Link>
-              <Link href={session ? "/dashboard" : "/register"} className="btn-outline">
+              <Link href={session ? "/dashboard" : "/register"} className="btn-outline w-full sm:w-auto">
                 {session ? "پیگیری سفارش‌ها" : "شروع خرید"}
               </Link>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <TrustBadge icon={Layers} value={`${plans.length}`} label="پلن فعال" />
               <TrustBadge icon={Package} value={`${totalInventory}`} label="اکانت آماده" />
-              <TrustBadge icon={Headphones} value="آنلاین" label="بررسی سفارش" />
+              <div className="col-span-2 sm:col-span-1">
+                <TrustBadge icon={Headphones} value="آنلاین" label="بررسی سفارش" />
+              </div>
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-card border border-sky-900/10 bg-[linear-gradient(145deg,rgba(2,6,23,0.98),rgba(15,23,42,0.96))] p-5 text-white motion-safe:animate-fade-in sm:p-6">
+          <div className="relative overflow-hidden rounded-card border border-sky-900/10 bg-[linear-gradient(145deg,rgba(2,6,23,0.98),rgba(15,23,42,0.96))] p-5 text-white motion-safe:animate-fade-in hidden lg:block sm:p-6">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.22),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.14),transparent_24%)]" />
             <div className="relative">
             <div className="text-sm font-medium text-sky-200">خلاصه روند خرید</div>
@@ -91,7 +104,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="grid gap-4 motion-safe:animate-fade-in md:grid-cols-3">
+      <section className="hidden sm:grid gap-4 motion-safe:animate-fade-in md:grid-cols-3">
         <FeatureCard
           title="موجودی واقعی"
           description="فقط پلن‌هایی نمایش داده می‌شوند که واقعا اکانت آماده دارند."
@@ -113,7 +126,7 @@ export default async function HomePage() {
         />
       </div>
 
-      <section className="card-surface motion-safe:animate-fade-in p-6 sm:p-8">
+      <section className="hidden sm:block card-surface motion-safe:animate-fade-in p-6 sm:p-8">
         <div className="max-w-2xl">
           <h2 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">سوالات پرتکرار</h2>
           <p className="mt-2 text-sm leading-7 text-prose">
@@ -150,15 +163,15 @@ function FeatureCard({ title, description }: { title: string; description: strin
 
 function TrustBadge({ icon: Icon, label, value }: { icon: LucideIcon; value: string; label: string }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-stroke bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))] px-4 py-4 transition hover:border-sky-200 hover:bg-panel motion-reduce:transition-none dark:bg-[linear-gradient(180deg,rgba(30,41,59,0.9),rgba(15,23,42,0.95))] dark:hover:border-sky-600/50 dark:hover:bg-elevated/50">
+    <div className="relative overflow-hidden rounded-2xl border border-stroke bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))] px-4 py-3 transition hover:border-sky-200 hover:bg-panel motion-reduce:transition-none dark:bg-[linear-gradient(180deg,rgba(30,41,59,0.9),rgba(15,23,42,0.95))] dark:hover:border-sky-600/50 dark:hover:bg-elevated/50 sm:py-4">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_30%)]" />
       <div className="relative flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-panel/90 text-cyan-700 shadow-sm ring-1 ring-stroke/80 dark:text-cyan-300">
-          <Icon className="h-5 w-5" aria-hidden />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-panel/90 text-cyan-700 shadow-sm ring-1 ring-stroke/80 dark:text-cyan-300 sm:h-10 sm:w-10">
+          <Icon className="h-4.5 w-4.5 sm:h-5 sm:w-5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-2xl font-semibold tabular-nums tracking-tight text-ink">{value}</div>
-          <div className="mt-1 text-xs text-faint">{label}</div>
+          <div className="text-xl font-semibold tabular-nums tracking-tight text-ink sm:text-2xl">{value}</div>
+          <div className="mt-1 text-[11px] text-faint sm:text-xs">{label}</div>
         </div>
       </div>
     </div>

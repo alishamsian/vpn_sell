@@ -24,7 +24,7 @@ export function MobileBottomNav({
   }
 
   return (
-    <div className="fixed inset-x-4 bottom-4 z-30 sm:hidden">
+    <div className="fixed inset-x-4 bottom-4 z-30 sm:hidden" data-mobile-bottom-nav>
       <div className="rounded-shell border border-stroke/80 bg-panel/92 p-2 shadow-2xl shadow-slate-900/10 backdrop-blur dark:border-stroke/80 dark:bg-slate-900/92 dark:shadow-black/40">
         <div className="grid grid-cols-4 gap-2">
           <MobileNavLink href="/" label="خانه" icon={Home} active={pathname === "/"} />

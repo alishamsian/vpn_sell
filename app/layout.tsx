@@ -15,6 +15,7 @@ import { getSession } from "@/lib/auth";
 import { AppThemeProvider } from "@/components/app-theme-provider";
 import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { MobileFocusController } from "@/components/mobile-focus-controller";
 
 const brandWordmark = Outfit({
   subsets: ["latin"],
@@ -69,8 +70,9 @@ export default async function RootLayout({
       <body>
         <AppThemeProvider>
           <ToastProvider>
+            <MobileFocusController />
             <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-24 sm:px-6 sm:pb-0 lg:px-8">
-              <header className="sticky top-0 z-20 pt-4">
+              <header className="sticky top-0 z-20 pt-4" data-app-header>
                 <div className="rounded-shell border border-stroke/80 bg-panel/90 px-4 py-4 shadow-soft backdrop-blur-sm sm:px-6">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-center justify-between gap-3 sm:gap-4 lg:justify-start">
@@ -128,7 +130,7 @@ export default async function RootLayout({
 
             <main className="flex-1 py-10">{children}</main>
 
-            <footer className="pb-6 pt-2">
+            <footer className="pb-6 pt-2" data-app-footer>
               <div className="rounded-shell border border-white/10 bg-brand-ink px-6 py-8 text-white shadow-soft shadow-cyan-950/20">
                 <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_repeat(2,minmax(0,0.8fr))]">
                   <div className="space-y-4">
@@ -216,6 +218,7 @@ export default async function RootLayout({
               ) : null
             }
           />
+          <div data-floating-chat>
             {session ? (
               <ChatLauncherVisibility session={{ role: session.role }}>
                 <FloatingChatEntry session={session} />
@@ -223,6 +226,7 @@ export default async function RootLayout({
             ) : (
               <FloatingChatGuestWidget />
             )}
+          </div>
           </ToastProvider>
         </AppThemeProvider>
       </body>

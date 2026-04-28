@@ -43,7 +43,7 @@
   }
 
   .pill-brand {
-    @apply inline-flex items-center gap-2 rounded-full border border-sky-300/40 bg-gradient-to-l from-cyan-500/10 to-amber-500/10 px-3 py-1.5 text-xs font-semibold text-sky-900 sm:px-4 dark:border-sky-500/35 dark:bg-slate-800/90 dark:text-sky-100;
+    @apply inline-flex items-center gap-2 rounded-full border border-sky-300/40 bg-gradient-to-l from-cyan-500/10 to-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-sky-900 sm:px-4 sm:text-xs dark:border-sky-500/35 dark:bg-slate-800/90 dark:text-sky-100;
   }
 
   /** پنل شیشه‌ای ادمین (کاتالوگ و جداول) */
@@ -93,6 +93,48 @@
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+}
+
+/* حالت تمرکز موبایل: کاهش حواس‌پرتی در مسیرهای خرید/داشبورد */
+@media (max-width: 639px) {
+  /* موبایل پررنگ‌تر: CTAها و کارت‌ها جذاب‌تر */
+  .btn-brand {
+    background-image: linear-gradient(135deg, rgba(2, 6, 23, 1), rgba(3, 105, 161, 0.95));
+    box-shadow:
+      0 14px 35px rgba(2, 6, 23, 0.18),
+      0 10px 20px rgba(14, 165, 233, 0.08);
+  }
+
+  .dark .btn-brand {
+    background-image: linear-gradient(135deg, rgba(248, 250, 252, 1), rgba(56, 189, 248, 0.85));
+    box-shadow:
+      0 18px 44px rgba(0, 0, 0, 0.35),
+      0 12px 28px rgba(56, 189, 248, 0.12);
+  }
+
+  .btn-outline {
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.06);
+  }
+
+  .dark .btn-outline {
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  html[data-mobile-focus="1"] [data-app-footer] {
+    display: none !important;
+  }
+
+  html[data-mobile-focus="1"] [data-floating-chat] {
+    display: none !important;
+  }
+
+  html[data-mobile-focus="1"][data-payment-open="1"] [data-mobile-bottom-nav] {
+    display: none !important;
+  }
+
+  html[data-mobile-focus="1"][data-payment-open="1"] [data-app-header] {
+    display: none !important;
   }
 }
 
@@ -156,6 +198,7 @@
 
 body {
   @apply min-h-screen bg-canvas font-sans text-ink antialiased;
+  overflow-x: hidden;
   background-image:
     radial-gradient(circle at top right, rgba(0, 168, 255, 0.14), transparent 24%),
     radial-gradient(circle at top left, rgba(5, 10, 24, 0.07), transparent 28%),

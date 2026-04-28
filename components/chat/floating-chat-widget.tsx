@@ -52,7 +52,7 @@ export function FloatingChatWidget({
   canComposeWithoutConversation = true,
   launcherClassName =
     "fixed bottom-6 inset-inline-start-6 inline-flex h-14 items-center gap-3 rounded-full border border-stroke bg-panel px-5 text-sm font-semibold text-ink shadow-[0_14px_30px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-stroke hover:shadow-[0_18px_36px_rgba(15,23,42,0.16)] dark:shadow-black/40",
-  panelClassName = "fixed bottom-24 inset-inline-start-4 w-[min(23rem,calc(100vw-2rem))]",
+  panelClassName = "fixed bottom-24 inset-x-4 w-auto max-w-[23rem]",
 }: FloatingChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [conversations, setConversations] = useState(initialConversations);

@@ -84,9 +84,11 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
     (!order.payment || order.payment.status === "REJECTED");
   const paymentRejectionReason =
     order.payment?.status === "REJECTED" ? (order.payment.reviewNote?.trim() || null) : null;
+  const isReviewPending = order.status === "PAYMENT_SUBMITTED" || order.payment?.status === "PENDING";
 
   return (
     <div className="space-y-8">
+      {isReviewPending ? <OrderReviewPendingCard /> : null}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <section className="space-y-6">
           {order.expiresAt ? <SubscriptionNoticeCard expiresAt={order.expiresAt} /> : null}
@@ -182,8 +184,6 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                 اکانت، سفارش شما خودکار تحویل می‌شود و نتیجه در داشبورد نمایش داده خواهد شد.
               </p>
             </div>
-          ) : order.status === "PAYMENT_SUBMITTED" || order.payment?.status === "PENDING" ? (
-            <OrderReviewPendingCard />
           ) : (
             <div className="rounded-3xl border border-stroke bg-panel p-6 shadow-soft">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -215,7 +215,32 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
               </span>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 sm:hidden">
+              <div className="flex items-center justify-between gap-2 rounded-2xl border border-stroke/70 bg-inset px-3 py-3">
+                <div className="text-xs font-medium text-faint">پیشرفت</div>
+                <div className="flex items-center gap-2">
+                  {progress.steps.map((step, index) => (
+                    <span key={step.title} className="flex items-center gap-2">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          step.state === "done"
+                            ? "bg-emerald-500"
+                            : step.state === "current"
+                              ? "bg-amber-500"
+                              : "bg-stroke"
+                        }`}
+                        aria-hidden
+                      />
+                      {index < progress.steps.length - 1 ? (
+                        <span className="h-px w-4 bg-stroke/70" aria-hidden />
+                      ) : null}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 hidden space-y-3 sm:block">
               {progress.steps.map((step, index) => (
                 <div key={step.title} className="flex gap-3">
                   <div className="flex w-6 flex-col items-center">
@@ -288,7 +313,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
       </div>
 
       {canPayNow ? (
-        <div className="fixed inset-x-4 bottom-4 z-[110] sm:hidden" dir="rtl">
+        <div className="fixed inset-x-4 bottom-24 z-[110] sm:hidden" dir="rtl">
           <div className="rounded-shell border border-stroke/80 bg-panel/92 p-3 shadow-2xl shadow-slate-900/10 backdrop-blur">
             <PaymentFlowModal
               orderId={order.id}

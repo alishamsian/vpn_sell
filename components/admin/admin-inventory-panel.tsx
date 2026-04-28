@@ -122,6 +122,7 @@ function ConfigRowsEditor({
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter(Boolean);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLines(parts.length > 0 ? parts.map((value) => createLine(value)) : [createLine()]);
   }, [editorKey, seedText]);
 
@@ -377,6 +378,7 @@ export function AdminInventoryPanel({ plans }: AdminInventoryPanelProps) {
   useEffect(() => {
     if (state.status === "success" && state.message) {
       showToast(state.message, "success");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBulkText("");
       setSelectedPlanId("");
       setPlanQuery("");
