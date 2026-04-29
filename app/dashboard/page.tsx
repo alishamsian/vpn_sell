@@ -51,7 +51,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-3xl border border-stroke bg-panel p-5 shadow-soft sm:p-8">
+      <section className="rounded-xl border border-stroke/70 bg-panel p-5 shadow-sm sm:rounded-2xl sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
             <div className="text-sm font-medium text-faint">داشبورد کاربری</div>
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="mt-6 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
+        <div className="mt-6 flex flex-wrap gap-2">
           <DashboardStatChip label="کل سفارش‌ها" value={toPersianNumber(totalOrders)} tone="default" />
           <DashboardStatChip label="تحویل‌شده" value={toPersianNumber(fulfilledOrders)} tone="success" />
           <DashboardStatChip label="نیازمند اقدام" value={toPersianNumber(pendingOrders)} tone="warning" />
@@ -87,7 +87,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-card border border-stroke bg-panel p-6 shadow-soft sm:p-8">
+      <section className="rounded-xl border border-stroke/70 bg-panel p-5 shadow-sm sm:rounded-2xl sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
             <h2 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">سفارش‌های من</h2>
@@ -104,90 +104,77 @@ export default async function DashboardPage() {
           ) : null}
         </div>
 
-        <div className="mt-8 space-y-8">
-          {actionRequiredOrders.length > 0 ? (
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-bold text-ink">نیازمند اقدام</h3>
-                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/60">
-                  {toPersianNumber(actionRequiredOrders.length)}
-                </span>
-              </div>
-              <div className="mt-4 grid gap-5">
-                {actionRequiredOrders.map((order) => (
-                  <DashboardOrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {reviewOrders.length > 0 ? (
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-bold text-ink">در حال بررسی</h3>
-                <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-800 ring-1 ring-sky-200 dark:bg-sky-950/40 dark:text-sky-200 dark:ring-sky-800/60">
-                  {toPersianNumber(reviewOrders.length)}
-                </span>
-              </div>
-              <div className="mt-4 grid gap-5">
-                {reviewOrders.map((order) => (
-                  <DashboardOrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {waitingOrders.length > 0 ? (
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-bold text-ink">در انتظار تحویل</h3>
-                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:ring-amber-800/60">
-                  {toPersianNumber(waitingOrders.length)}
-                </span>
-              </div>
-              <div className="mt-4 grid gap-5">
-                {waitingOrders.map((order) => (
-                  <DashboardOrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {fulfilled.length > 0 ? (
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-bold text-ink">تحویل‌شده</h3>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:ring-emerald-800/60">
-                  {toPersianNumber(fulfilled.length)}
-                </span>
-              </div>
-              <div className="mt-4 grid gap-5">
-                {fulfilled.map((order) => (
-                  <DashboardOrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            </div>
-          ) : null}
-
+        <div className="mt-6 space-y-3">
           {orders.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-stroke bg-inset/50 px-6 py-14 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-elevated text-faint">
-                <Package className="h-7 w-7" aria-hidden />
-              </div>
-              <p className="mt-5 text-base font-semibold text-ink">هنوز سفارشی ثبت نکرده‌اید</p>
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-7 text-prose">
-                از صفحهٔ اصلی یک پلن انتخاب کنید؛ بعد از ثبت سفارش، همین‌جا پیشرفت و پرداخت را دنبال می‌کنید.
-              </p>
-              <Link href="/#plans" className="btn-brand mx-auto mt-6 inline-flex min-w-[12rem]">
-                مشاهده پلن‌ها
-              </Link>
-            </div>
-          ) : null}
+            <EmptyTabState hasAnyOrders={false} />
+          ) : (
+            <>
+              <details open className="rounded-lg border border-stroke/70 bg-panel">
+                <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-ink hover:bg-inset">
+                  نیازمند اقدام
+                </summary>
+                <div className="grid gap-3 px-4 pb-4">
+                  {actionRequiredOrders.length > 0 ? (
+                    actionRequiredOrders.map((order) => <DashboardOrderCard key={order.id} order={order} />)
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-stroke bg-inset/50 px-4 py-4 text-center text-sm text-faint">
+                      موردی برای اقدام ندارید.
+                    </div>
+                  )}
+                </div>
+              </details>
+
+              <details open className="rounded-lg border border-stroke/70 bg-panel">
+                <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-ink hover:bg-inset">
+                  در حال بررسی
+                </summary>
+                <div className="grid gap-3 px-4 pb-4">
+                  {reviewOrders.length > 0 ? (
+                    reviewOrders.map((order) => <DashboardOrderCard key={order.id} order={order} />)
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-stroke bg-inset/50 px-4 py-4 text-center text-sm text-faint">
+                      موردی در صف بررسی نیست.
+                    </div>
+                  )}
+                </div>
+              </details>
+
+              <details className="rounded-lg border border-stroke/70 bg-panel">
+                <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-ink hover:bg-inset">
+                  در انتظار تحویل
+                </summary>
+                <div className="grid gap-3 px-4 pb-4">
+                  {waitingOrders.length > 0 ? (
+                    waitingOrders.map((order) => <DashboardOrderCard key={order.id} order={order} />)
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-stroke bg-inset/50 px-4 py-4 text-center text-sm text-faint">
+                      سفارشی در انتظار تحویل ندارید.
+                    </div>
+                  )}
+                </div>
+              </details>
+
+              <details className="rounded-lg border border-stroke/70 bg-panel">
+                <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-ink hover:bg-inset">
+                  تحویل‌شده
+                </summary>
+                <div className="grid gap-3 px-4 pb-4">
+                  {fulfilled.length > 0 ? (
+                    fulfilled.map((order) => <DashboardOrderCard key={order.id} order={order} />)
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-stroke bg-inset/50 px-4 py-4 text-center text-sm text-faint">
+                      هنوز سفارشی تحویل نشده است.
+                    </div>
+                  )}
+                </div>
+              </details>
+            </>
+          )}
         </div>
       </section>
 
-      <section className="rounded-3xl border border-stroke bg-panel p-5 shadow-soft sm:p-6">
-        <details className="rounded-2xl border border-stroke bg-panel">
+      <section className="rounded-xl border border-stroke/70 bg-panel p-5 shadow-sm sm:rounded-2xl sm:p-6">
+        <details className="rounded-xl border border-stroke/70 bg-panel">
           <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-ink hover:bg-inset">
             اعلان‌ها و یادآورها
           </summary>
@@ -406,16 +393,16 @@ function DashboardOrderCard({ order }: { order: DashboardOrder }) {
   const stripClass = getOrderStripClass(order);
 
   return (
-    <div className="flex overflow-hidden rounded-2xl border border-stroke/90 bg-panel shadow-soft ring-1 ring-slate-900/[0.04] transition hover:ring-slate-900/[0.07] motion-reduce:transition-none dark:ring-white/[0.06] dark:hover:ring-white/[0.1]">
+    <div className="flex overflow-hidden rounded-lg border border-stroke/70 bg-panel shadow-sm transition hover:bg-inset motion-reduce:transition-none">
       <div className={`w-1 shrink-0 sm:w-1.5 ${stripClass}`} aria-hidden />
-      <article className="min-w-0 flex-1 p-5 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
+      <article className="min-w-0 flex-1 p-4 sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
           <div className="min-w-0 flex-1 space-y-4">
             {order.expiresAt ? <ExpiryBanner expiresAt={order.expiresAt} orderId={order.id} /> : null}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
               <div className="min-w-0 space-y-2">
-                <h3 className="text-pretty text-lg font-bold leading-snug tracking-tight text-ink sm:text-xl">
+                <h3 className="text-pretty text-base font-bold leading-snug tracking-tight text-ink sm:text-lg">
                   {order.plan.name}
                 </h3>
                 <p className="flex min-w-0 items-center gap-1.5 text-xs text-faint" dir="ltr">
@@ -433,28 +420,28 @@ function DashboardOrderCard({ order }: { order: DashboardOrder }) {
             </div>
 
             <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              <div className="rounded-xl border border-stroke/70 bg-inset/80 px-3 py-2.5 transition hover:border-sky-100 hover:bg-sky-50/30 dark:hover:border-sky-800 dark:hover:bg-sky-950/25">
+              <div className="rounded-lg border border-stroke/70 bg-inset/70 px-3 py-2 transition hover:bg-inset">
                 <dt className="flex items-center gap-1 text-[10px] font-bold text-faint">
                   <Wallet className="h-3 w-3 text-sky-600/80 dark:text-sky-400/90" aria-hidden />
                   مبلغ
                 </dt>
                 <dd className="mt-1 text-sm font-bold tabular-nums text-ink">{formatPrice(Number(order.amount))}</dd>
               </div>
-              <div className="rounded-xl border border-stroke/70 bg-inset/80 px-3 py-2.5 transition hover:border-sky-100 hover:bg-sky-50/30 dark:hover:border-sky-800 dark:hover:bg-sky-950/25">
+              <div className="rounded-lg border border-stroke/70 bg-inset/70 px-3 py-2 transition hover:bg-inset">
                 <dt className="flex items-center gap-1 text-[10px] font-bold text-faint">
                   <CalendarDays className="h-3 w-3 text-sky-600/80 dark:text-sky-400/90" aria-hidden />
                   مدت
                 </dt>
                 <dd className="mt-1 text-sm font-bold text-ink">{formatDuration(order.plan.durationDays)}</dd>
               </div>
-              <div className="rounded-xl border border-stroke/70 bg-inset/80 px-3 py-2.5 transition hover:border-sky-100 hover:bg-sky-50/30 dark:hover:border-sky-800 dark:hover:bg-sky-950/25">
+              <div className="rounded-lg border border-stroke/70 bg-inset/70 px-3 py-2 transition hover:bg-inset">
                 <dt className="flex items-center gap-1 text-[10px] font-bold text-faint">
                   <Users className="h-3 w-3 text-sky-600/80 dark:text-sky-400/90" aria-hidden />
                   کاربر
                 </dt>
                 <dd className="mt-1 text-sm font-bold text-ink">{formatUserLimit(order.plan.maxUsers)}</dd>
               </div>
-              <div className="rounded-xl border border-stroke/70 bg-inset/80 px-3 py-2.5 transition hover:border-sky-100 hover:bg-sky-50/30 dark:hover:border-sky-800 dark:hover:bg-sky-950/25">
+              <div className="rounded-lg border border-stroke/70 bg-inset/70 px-3 py-2 transition hover:bg-inset">
                 <dt className="text-[10px] font-bold text-faint">ثبت سفارش</dt>
                 <dd className="mt-1 text-sm font-bold tabular-nums text-ink">{formatDateTime(order.createdAt)}</dd>
               </div>
@@ -471,7 +458,7 @@ function DashboardOrderCard({ order }: { order: DashboardOrder }) {
           <OrderStepTracker order={order} />
         </div>
 
-        <div className="mt-5 rounded-xl border border-stroke/70 bg-inset/50 p-4 sm:p-5">
+        <div className="mt-4 rounded-lg border border-stroke/70 bg-inset/50 p-4 sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-1">
               <p className="text-sm font-bold text-ink">{getOrderActionTitle(order)}</p>
@@ -526,6 +513,27 @@ function formatDateTime(value: Date) {
 
 function toPersianNumber(value: number) {
   return new Intl.NumberFormat("fa-IR").format(value);
+}
+
+function EmptyTabState({ hasAnyOrders }: { hasAnyOrders: boolean }) {
+  return (
+    <div className="rounded-lg border border-dashed border-stroke bg-inset/50 px-6 py-12 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-elevated text-faint">
+        <Package className="h-7 w-7" aria-hidden />
+      </div>
+      <p className="mt-5 text-base font-semibold text-ink">
+        {hasAnyOrders ? "در این دسته‌بندی سفارشی وجود ندارد" : "هنوز سفارشی ثبت نکرده‌اید"}
+      </p>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-7 text-prose">
+        {hasAnyOrders
+          ? "از تب‌های بالا دسته‌بندی دیگری را انتخاب کنید یا یک سفارش جدید ثبت کنید."
+          : "از صفحهٔ اصلی یک پلن انتخاب کنید؛ بعد از ثبت سفارش، همین‌جا پیشرفت و پرداخت را دنبال می‌کنید."}
+      </p>
+      <Link href="/#plans" className="btn-brand mx-auto mt-6 inline-flex min-w-[12rem]">
+        مشاهده پلن‌ها
+      </Link>
+    </div>
+  );
 }
 
 function getOrderTone(

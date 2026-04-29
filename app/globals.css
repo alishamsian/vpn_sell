@@ -125,7 +125,8 @@
     display: none !important;
   }
 
-  html[data-mobile-focus="1"] [data-floating-chat] {
+  /* چت شناور روی موبایل فعال باشد؛ فقط هنگام پرداخت مخفی می‌شود */
+  html[data-mobile-focus="1"][data-payment-open="1"] [data-floating-chat-panel] {
     display: none !important;
   }
 

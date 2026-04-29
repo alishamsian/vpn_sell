@@ -51,8 +51,8 @@ export function FloatingChatWidget({
   emptyDescription,
   canComposeWithoutConversation = true,
   launcherClassName =
-    "fixed bottom-6 inset-inline-start-6 inline-flex h-14 items-center gap-3 rounded-full border border-stroke bg-panel px-5 text-sm font-semibold text-ink shadow-[0_14px_30px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-stroke hover:shadow-[0_18px_36px_rgba(15,23,42,0.16)] dark:shadow-black/40",
-  panelClassName = "fixed bottom-24 inset-x-4 w-auto max-w-[23rem]",
+    "fixed bottom-[6.75rem] right-6 left-auto inline-flex h-12 items-center gap-2 rounded-full border border-stroke/80 bg-panel/92 px-4 text-xs font-semibold text-ink shadow-[0_18px_40px_rgba(2,6,23,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-stroke hover:bg-panel hover:shadow-[0_22px_48px_rgba(2,6,23,0.2)] dark:shadow-black/45 sm:bottom-6 sm:left-6 sm:right-auto sm:h-14 sm:gap-3 sm:px-5 sm:text-sm",
+  panelClassName = "fixed bottom-[11.25rem] inset-x-4 w-auto max-w-[22rem] sm:bottom-24 sm:max-w-[23rem]",
 }: FloatingChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [conversations, setConversations] = useState(initialConversations);
@@ -284,14 +284,14 @@ export function FloatingChatWidget({
   };
 
   return (
-    <>
+    <div data-floating-chat>
       <button
         type="button"
         onClick={handleToggleOpen}
         className={launcherClassName}
         style={{ zIndex: 99999 }}
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-elevated text-prose">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/15 to-brand-cyan/10 text-prose ring-1 ring-sky-200/60 dark:ring-sky-900/60">
           <MessageCircleMore className="h-4.5 w-4.5" />
         </span>
         <span>چت</span>
@@ -300,6 +300,7 @@ export function FloatingChatWidget({
 
       {isOpen ? (
         <div
+          data-floating-chat-panel
           className={panelClassName}
           style={{ zIndex: 99999 }}
         >
@@ -307,7 +308,7 @@ export function FloatingChatWidget({
             <div className="flex items-center justify-between gap-3 border-b border-stroke px-4 py-2.5">
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold text-ink">{title}</div>
-                <div className="mt-0.5 text-[11px] text-faint">
+                <div className="mt-0.5 hidden text-[11px] text-faint sm:block">
                   {conversation?.title ?? "گفت‌وگوی سریع پشتیبانی"}
                 </div>
               </div>
@@ -332,8 +333,8 @@ export function FloatingChatWidget({
             </div>
 
             {conversations.length > 0 ? (
-              <div className="border-b border-stroke px-4 py-2.5">
-                <label className="mb-1.5 block text-[10px] font-medium text-faint">
+              <div className="border-b border-stroke px-4 py-2">
+                <label className="mb-1.5 hidden text-[10px] font-medium text-faint sm:block">
                   {role === "ADMIN" ? "گفت‌وگوی فعال" : "محصول / موضوع گفتگو"}
                 </label>
                 <select
@@ -352,13 +353,13 @@ export function FloatingChatWidget({
               </div>
             ) : null}
 
-            <div className="border-b border-stroke px-4 py-1.5">
+            <div className="hidden border-b border-stroke px-4 py-1.5 sm:block">
               <TypingIndicator active={liveActive} label="به‌روزرسانی سریع فعال است" />
             </div>
 
             <div
               ref={listRef}
-              className="h-[16.5rem] space-y-3 overflow-y-auto bg-inset/70 px-4 py-3"
+              className="h-[14rem] space-y-3 overflow-y-auto bg-inset/70 px-4 py-3 sm:h-[16.5rem]"
             >
               {conversation ? (
                 conversation.messages.length > 0 ? (
@@ -390,7 +391,7 @@ export function FloatingChatWidget({
                 orderId={conversation?.order?.id}
                 disabled={conversation?.status === "CLOSED" || (!conversation && !canComposeWithoutConversation)}
                 placeholder="پیام کوتاه خود را بنویسید..."
-                rows={3}
+                rows={2}
                 compact
                 onOptimisticSend={({ message }) => {
                   if (conversation?.id) {
@@ -424,6 +425,6 @@ export function FloatingChatWidget({
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

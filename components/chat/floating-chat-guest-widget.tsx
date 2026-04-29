@@ -8,14 +8,14 @@ export function FloatingChatGuestWidget() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <>
+    <div data-floating-chat>
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="fixed bottom-6 inset-inline-start-6 inline-flex h-14 items-center gap-3 rounded-full border border-stroke bg-panel px-5 text-sm font-semibold text-ink shadow-[0_14px_30px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-stroke hover:shadow-[0_18px_36px_rgba(15,23,42,0.16)] dark:shadow-black/40"
+        className="fixed bottom-[6.75rem] right-6 left-auto inline-flex h-12 items-center gap-2 rounded-full border border-stroke/80 bg-panel/92 px-4 text-xs font-semibold text-ink shadow-[0_18px_40px_rgba(2,6,23,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-stroke hover:bg-panel hover:shadow-[0_22px_48px_rgba(2,6,23,0.2)] dark:shadow-black/45 sm:bottom-6 sm:left-6 sm:right-auto sm:h-14 sm:gap-3 sm:px-5 sm:text-sm"
         style={{ zIndex: 99999 }}
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-elevated text-prose">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/15 to-brand-cyan/10 text-prose ring-1 ring-sky-200/60 dark:ring-sky-900/60">
           <MessageCircleMore className="h-4.5 w-4.5" />
         </span>
         <span>چت</span>
@@ -23,7 +23,8 @@ export function FloatingChatGuestWidget() {
 
       {isOpen ? (
         <div
-          className="fixed bottom-24 inset-x-4 w-auto max-w-[23rem]"
+          data-floating-chat-panel
+          className="fixed bottom-[11.25rem] inset-x-4 w-auto max-w-[22rem] sm:bottom-24 sm:max-w-[23rem]"
           style={{ zIndex: 99999 }}
         >
           <div className="overflow-hidden rounded-shell border border-stroke bg-panel shadow-2xl shadow-black/10 dark:shadow-black/40">
@@ -68,6 +69,6 @@ export function FloatingChatGuestWidget() {
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

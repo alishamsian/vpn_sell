@@ -14,8 +14,8 @@ export function AdminMobileChatDock({
     <div className="lg:hidden">
       <FloatingChatEntry
         session={session}
-        launcherClassName="fixed bottom-[6.75rem] inset-inline-start-4 z-[100] inline-flex h-14 items-center gap-3 rounded-full border border-stroke bg-panel px-5 text-sm font-semibold text-ink shadow-[0_14px_30px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-stroke hover:shadow-[0_18px_36px_rgba(15,23,42,0.16)] dark:shadow-black/40"
-        panelClassName="fixed bottom-[11.25rem] inset-inline-start-4 z-[100] w-[min(23rem,calc(100vw-2rem))]"
+        launcherClassName="fixed bottom-[6.75rem] right-6 left-auto z-[100] inline-flex h-12 items-center gap-2 rounded-full border border-stroke/80 bg-panel/92 px-4 text-xs font-semibold text-ink shadow-[0_18px_40px_rgba(2,6,23,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-stroke hover:bg-panel hover:shadow-[0_22px_48px_rgba(2,6,23,0.2)] dark:shadow-black/45"
+        panelClassName="fixed bottom-[11.25rem] inset-x-4 z-[100] w-auto max-w-[22rem]"
       />
     </div>
   );
